@@ -11,9 +11,9 @@ def main():
     project_root = sys.argv[1]
     commit_count = int(sys.argv[2])
 
-    runner.run(project_root, commit_count)
+    # runner.run(project_root, commit_count)
     log_dir = utils.get_log_dir(project_root)
-    analyzer.get_log_file_names(log_dir)
+    analyzer.analyze(log_dir)
 
 
 # argv[1]: path to maven project
