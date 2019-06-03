@@ -6,29 +6,25 @@ import json
 from pathlib import Path
 from typing import List, Dict
 
-from git import Repo
-
-home = str(Path.home())
-# project_root = home + "/Code/peassquickstart"
-# path_to_pom = project_root + "/pom.xml"
+from git import Repo # type: ignore
 
 def main():
     if len(sys.argv) < 3:
         print("Please provide path to mvn repository and number of commits")
         exit(1)
     
-    project_root = sys.argv[1]
-    path_to_pom = project_root + "/pom.xml"
-    commit_count = int(sys.argv[2])
+    project_root = sys.argv[1] # type: str
+    path_to_pom = project_root + "/pom.xml" # type: str
+    commit_count = int(sys.argv[2]) # type: int
 
     repo = Repo(project_root)
-    if repo.is_dirty():
-        print(repo.untracked_files)
     
     commit_list = list(repo.iter_commits('master')) # list of all commits in branch master
-    commit_list = commit_list[0 : commit_count]
+    commit_list = commit_list[0 : commit_count] # get last n commits, counting from HEAD
 
     path_to_log = create_log_dir(project_root)
+
+    log_list: List[Dict] = []
 
     for commit in commit_list:
         repo.git.checkout(commit.hexsha)
@@ -37,7 +33,10 @@ def main():
         for report in reports:
             report_data = parse_report(report)
             log_data = {"commit": commit.hexsha, "report": report_data}
-            filename = write_log(log_data, path_to_log)
+            log_list.append(log_data)
+    
+    for grouped_list in group_logs_by_test_name(log_list):
+        write_log_list(grouped_list, path_to_log)
     
     # checkout master again
     repo.git.checkout("master")
@@ -58,7 +57,7 @@ def get_parent_dir(dir: str) -> str:
 
 def create_log_dir(project_root: str) -> str:
     parent_dir = get_parent_dir(project_root)
-    path = parent_dir + "/perfomance-delta"
+    path = parent_dir + "/perfdelta-results"
 
     if not os.path.isdir(path):
         try:
@@ -70,13 +69,15 @@ def create_log_dir(project_root: str) -> str:
     
     return path
 
-# Assumes surefire report is formatted as follows:
-#
-# -------------------------------------------------------------------------------
-# Test set: org.rascat.TermsOfSumTest
-# -------------------------------------------------------------------------------
-# Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.049 s - in org.rascat.TermsOfSumTest
 def parse_report(path_to_report: str) -> Dict:
+    """
+    Assumes surefire report is formatted as follows:
+
+    -------------------------------------------------------------------------------
+    Test set: org.rascat.TermsOfSumTest
+    -------------------------------------------------------------------------------
+    Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.049 s - in org.rascat.TermsOfSumTest
+    """
     line_list = [line.rstrip('\n') for line in open(path_to_report)]
     line_test_info = line_list[3]
     line_test_info = line_test_info.strip()
@@ -97,6 +98,37 @@ def parse_report(path_to_report: str) -> Dict:
         "time_elapsed": time_elapsed,
         "test_name": test_name
         }
+
+
+def group_logs_by_test_name(log_list: List) -> List[List[Dict]]:
+    """
+    Groups a list of dicts like [{'test_name': 'X'},{'test_name': 'Y'}, {'test_name': 'X'}]
+    to a list of lists like [[{'test_name': 'X'}, {'test_name': 'X'}], [{'test_name': 'Y'}]]
+    """
+    grouped_log_list = [] # type: List[List[Dict]]
+    test_result_map = {} # type: Dict[str, List]
+
+    for log in log_list:
+        test_name = log['report']['test_name']
+        if test_name not in test_result_map.keys():
+            test_result_map[test_name] = [log]
+        else:
+            test_result_map[test_name].append(log)
+    
+    for key in test_result_map.keys():
+        grouped_log_list.append(test_result_map[key])
+    
+    return grouped_log_list
+
+
+def write_log_list(log_list: List, path_to_log: str) -> str:
+    filename = log_list[0]['report']['test_name'] + '.json'
+    path = os.path.join(path_to_log, filename)
+
+    with open(path, 'w') as file:
+        file.write(json.dumps(log_list, indent=2))
+    
+    return filename
 
 
 def write_log(data: Dict, path_to_log: str) -> str:
