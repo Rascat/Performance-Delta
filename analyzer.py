@@ -41,7 +41,8 @@ def analyze_log_list(log_list: List[Dict]):
         next_runtime = log_list[i + 1][constants.REPORT][constants.TIME_ELAPSED]
 
         runtime_delta = current_runtime - next_runtime
-        logger.log_delta(current_commit, current_runtime, runtime_delta, current_runtime / next_runtime)
+        speedup = current_runtime / next_runtime if int(next_runtime) is not 0 else 0
+        logger.log_delta(current_commit, current_runtime, runtime_delta, speedup)
         if (current_runtime * DELTA_THRESHOLD) > next_runtime:
             logger.warn(current_commit, next_commit, runtime_delta, DELTA_THRESHOLD)
 

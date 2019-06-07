@@ -11,12 +11,20 @@ from typing import List, Dict
 
 from git import Repo # type: ignore
 
-def run(path_to_repo: str, commit_count: int):
+def run(path_to_repo: str, start_commit: str, end_commit: str):
     repo = Repo(path_to_repo)
     path_to_pom = os.path.join(path_to_repo, constants.POM)
     
     commit_list = list(repo.iter_commits('master')) # list of all commits in branch master
-    commit_list = commit_list[0 : commit_count] # get last n commits, counting from HEAD
+
+    index_start = commit_list.index(repo.commit(start_commit))
+    index_end = commit_list.index(repo.commit(end_commit))
+
+    if (index_start >= index_end):
+        print("Error, wrong commit order.")
+        exit(1)
+
+    commit_list = commit_list[index_start: index_end + 1] # get last n commits, counting from HEAD
 
     path_to_log = create_log_dir(path_to_repo)
 
