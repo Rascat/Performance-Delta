@@ -10,7 +10,7 @@ def get_parent_dir(child_dir: str) -> str:
     return os.path.abspath(os.path.join(child_dir, os.pardir))
 
 
-def get_log_dir(path_to_repo: str) -> str:
+def get_default_log_dir(path_to_repo: str) -> str:
     """Returns path to dir where test execution data and statistics are being written to."""
     parent_dir = get_parent_dir(path_to_repo)
     return os.path.join(parent_dir, constants.RESULTS_DIRECTORY)

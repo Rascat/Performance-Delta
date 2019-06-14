@@ -13,7 +13,7 @@ import constants
 import utils
 
 
-def run(path_to_repo: str, start_commit: str, end_commit: str):
+def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str):
     """Runs a maven repositories test suite over a range of commits and logs commit specific execution times."""
     repo = Repo(path_to_repo)
     path_to_pom = os.path.join(path_to_repo, constants.POM)
@@ -24,12 +24,12 @@ def run(path_to_repo: str, start_commit: str, end_commit: str):
     index_end = commit_list.index(repo.commit(end_commit))
 
     if (index_start >= index_end):
-        print("Error, wrong commit order.")
+        print("Error, wrong commit order. First commit must be younger than the second one.")
         exit(1)
 
     commit_list = commit_list[index_start: index_end + 1] # get last n commits, counting from HEAD
 
-    path_to_log = create_log_dir(path_to_repo)
+    utils.create_dir(path_to_log)
 
     log_list = [] # type: List[Dict]
 
@@ -47,13 +47,6 @@ def run(path_to_repo: str, start_commit: str, end_commit: str):
     
     # checkout master again
     repo.git.checkout("master")
-
-
-def create_log_dir(project_root: str) -> str:
-    """Creates the directory where the test execution data is logged to."""
-    path = utils.get_log_dir(project_root)
-
-    return utils.create_dir(path)
 
 
 def run_mvn_test(path_to_pom: str):

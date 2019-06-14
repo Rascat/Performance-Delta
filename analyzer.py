@@ -40,7 +40,7 @@ def analyze_log_list(log_list: List[Dict]) -> Dict:
     """
 
     list_length = len(log_list)
-    std_dev = 0
+    std_dev = 0.0
     if list_length >= 2:
         std_dev = compute_std_deviation(log_list)
 
