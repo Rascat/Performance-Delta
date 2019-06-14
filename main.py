@@ -1,8 +1,10 @@
-import analyzer
 import argparse
 import sys
-import utils
+
+import analyzer
 import runner
+import utils
+
 
 def main():
     parser = argparse.ArgumentParser(description="Run tests from commit X to commit Y.")

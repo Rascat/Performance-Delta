@@ -1,17 +1,20 @@
-import constants
-import parser
 import glob
-import utils
+import json
 import os.path
+import parser
 import subprocess
 import sys
-import json
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
 
-from git import Repo # type: ignore
+from git import Repo  # type: ignore
+
+import constants
+import utils
+
 
 def run(path_to_repo: str, start_commit: str, end_commit: str):
+    """Runs a maven repositories test suite over a range of commits and logs commit specific execution times."""
     repo = Repo(path_to_repo)
     path_to_pom = os.path.join(path_to_repo, constants.POM)
     
@@ -47,24 +50,19 @@ def run(path_to_repo: str, start_commit: str, end_commit: str):
 
 
 def create_log_dir(project_root: str) -> str:
+    """Creates the directory where the test execution data is logged to."""
     path = utils.get_log_dir(project_root)
 
-    if not os.path.isdir(path):
-        try:
-            os.mkdir(path)
-        except OSError:
-            print("Creation of the directory %s failed" % path)
-        else:
-            print("Successfully created the directory %s" % path)
-    
-    return path
+    return utils.create_dir(path)
 
 
 def run_mvn_test(path_to_pom: str):
+    """Triggers test execution with surefire for the maven project specified in the pom."""
     subprocess.run(["mvn clean test -f " + path_to_pom], shell = True)
 
 
 def collect_surefire_reports(project_root: str) -> List[str]:
+    """Returns a list of filenames for files containing test execution data."""
     path_to_reports = os.path.join(project_root, constants.MVN_TARGET_DIR, constants.SUREFIRE_REPORTS_DIR)
     return utils.get_filenames_by_type(path_to_reports, "txt")
 
@@ -91,6 +89,7 @@ def group_logs_by_test_name(log_list: List) -> List[List[Dict]]:
 
 
 def write_log_list(log_list: List, path_to_log: str) -> str:
+    """Writes a list of test data dicts to a JSON file in the specified dir and returns the path to the created file."""
     filename = log_list[0]['report']['test_name'] + '.json'
     path = os.path.join(path_to_log, filename)
 
