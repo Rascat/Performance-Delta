@@ -2,7 +2,7 @@ import glob
 import json
 import os
 import statistics
-from typing import Dict, List
+from typing import Dict, List, Any
 
 import constants
 import logger
@@ -33,23 +33,22 @@ def get_log_file_names(path_to_log_dir: str) -> List[str]:
     return filenames
 
 
-def analyze_log_list(log_list: List[Dict]) -> Dict:
+def analyze_log_list(log_list: List[Dict[str, Any]]) -> Dict:
     """Computes benchmark statistics from a list of test data.
     
     Returns a dict containing the statistics belonging to a test suite over a list of commits.
     """
-
     list_length = len(log_list)
     std_dev = 0.0
     if list_length >= 2:
         std_dev = compute_std_deviation(log_list)
 
     analysis_result = {}
-    analysis_result['test_name'] = log_list[0].get(constants.REPORT).get(constants.TEST_NAME)
-    analysis_result['std_dev'] = std_dev
-    analysis_result['delta_threshold'] = DELTA_THRESHOLD
-    analysis_result['std_dev_threshold'] = STD_DEV_THRESHOLD
-    analysis_result['commits'] = []
+    analysis_result[constants.TEST_NAME] = log_list[0].get(constants.REPORT).get(constants.TEST_NAME)
+    analysis_result[constants.STD_DEVIATION] = std_dev
+    analysis_result[constants.DELTA_THRESHOLD] = DELTA_THRESHOLD
+    analysis_result[constants.STD_DEVIATION_THRESHOLD] = STD_DEV_THRESHOLD
+    analysis_result[constants.COMMITS] = []
 
     # compare perf of commit X with performance of following commit X+1 (an earlier version)
     for i in range(list_length - 1):
@@ -61,12 +60,12 @@ def analyze_log_list(log_list: List[Dict]) -> Dict:
         speedup = current_runtime / next_runtime if int(next_runtime) is not 0 else 0
 
         commit_statistics = {}
-        commit_statistics['hexsha'] = current_commit
-        commit_statistics['runtime'] = current_runtime
-        commit_statistics['speedup'] = speedup
-        commit_statistics['runtime_delta'] = runtime_delta
+        commit_statistics[constants.HEXSHA] = current_commit
+        commit_statistics[constants.RUNTIME] = current_runtime
+        commit_statistics[constants.SPEEDUP] = speedup
+        commit_statistics[constants.RUNTIME_DELTA] = runtime_delta
 
-        analysis_result['commits'].append(commit_statistics)
+        analysis_result[constants.COMMITS].append(commit_statistics)
 
     return  analysis_result
 

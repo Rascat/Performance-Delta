@@ -14,3 +14,16 @@ FAILURES = 'failures'
 ERRORS = 'errors'
 TIME_ELAPSED = 'time_elapsed'
 TEST_NAME = 'test_name'
+
+###############################
+# Statistics object constants #
+###############################
+
+STD_DEVIATION = 'std_dev'
+DELTA_THRESHOLD = 'delta_threshold'
+STD_DEVIATION_THRESHOLD = 'std_dev_threshold'
+COMMITS = 'commits'
+HEXSHA = 'hexsha'
+RUNTIME = 'runtime'
+SPEEDUP = 'speedup'
+RUNTIME_DELTA = 'runtime_delta'
