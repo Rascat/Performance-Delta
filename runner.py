@@ -51,7 +51,26 @@ def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str)
 
 def run_mvn_test(path_to_pom: str):
     """Triggers test execution with surefire for the maven project specified in the pom."""
-    subprocess.run(["mvn clean test -f " + path_to_pom], shell = True)
+    subprocess.run(["mvn clean test -f " + path_to_pom], shell=True)
+
+
+def collect_submodules(path_to_pom: str) -> List[str]:
+    """Returns a list of paths to every mvn submodule of the specified parent module."""
+    cmd = "mvn -f {pom} -q --also-make exec:exec -Dexec.executable=\"pwd\"".format(pom=path_to_pom)
+    completed_process = subprocess.run([cmd], stdout=subprocess.PIPE, encoding='utf-8', shell=True)
+    return completed_process.stdout.splitlines()
+
+
+def filter_target_modules(submodules: List[str]) -> List[str]:
+    """Filters a list mvn submodule paths. Returns a list of paths to submodules that contain a target directory."""
+    return filter(has_target_dir, submodules)
+
+
+def has_target_dir(path: str) -> bool:
+    """Returns True iff the specified directory contains a directory named 'target'"""
+    sub_dirs = os.listdir(path)
+    return constants.MVN_TARGET_DIR in sub_dirs and os.path.isdir(os.path.join(path, constants.MVN_TARGET_DIR))
+
 
 
 def collect_surefire_reports(project_root: str) -> List[str]:
