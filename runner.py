@@ -13,10 +13,10 @@ import constants
 import utils
 
 
-def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str):
+def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str, test_classes: List[str] = None):
     """Runs a maven repositories test suite over a range of commits and logs commit specific execution times."""
     repo = Repo(path_to_repo)
-    path_to_pom = os.path.join(path_to_repo, constants.POM)
+    path_to_parent_pom = os.path.join(path_to_repo, constants.POM)
     
     commit_list = list(repo.iter_commits('master')) # list of all commits in branch master
 
@@ -35,12 +35,19 @@ def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str)
 
     for commit in commit_list:
         repo.git.checkout(commit.hexsha)
-        run_mvn_test(path_to_pom)
-        reports = collect_surefire_reports(path_to_repo)
-        for report in reports:
-            report_data = parser.parse_report(report)
-            log_data = {"commit": commit.hexsha, "report": report_data}
-            log_list.append(log_data)
+        if test_classes is None:
+            run_mvn_test(path_to_parent_pom)
+        else:
+            run_mvn_test_selected(path_to_parent_pom, test_classes)
+
+        submodules = filter_target_modules(collect_submodules(path_to_parent_pom))
+
+        for submodule in submodules:
+            reports = collect_surefire_reports(submodule)
+            for report in reports:
+                report_data = parser.parse_report(report)
+                log_data = {"commit": commit.hexsha, "report": report_data}
+                log_list.append(log_data)
     
     for grouped_list in group_logs_by_test_name(log_list):
         write_log_list(grouped_list, path_to_log)
@@ -49,9 +56,16 @@ def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str)
     repo.git.checkout("master")
 
 
-def run_mvn_test(path_to_pom: str):
+def run_mvn_test(path_to_parent_pom: str):
     """Triggers test execution with surefire for the maven project specified in the pom."""
-    subprocess.run(["mvn clean test -f " + path_to_pom], shell=True)
+    subprocess.run(["mvn clean test -f " + path_to_parent_pom], shell=True)
+
+
+def run_mvn_test_selected(path_to_parent_pom: str, test_classes: List[str]):
+    """Triggers test execution with surefire for a selection of test classes"""
+    comma_separated_classes = ",".join(test_classes)
+    cmd = "mvn clean test -DfailIfNoTests=false -Dtest={classes} -am -f {pom}".format(pom=path_to_parent_pom, classes=comma_separated_classes)
+    subprocess.run([cmd], shell=True)
 
 
 def collect_submodules(path_to_pom: str) -> List[str]:
@@ -63,7 +77,7 @@ def collect_submodules(path_to_pom: str) -> List[str]:
 
 def filter_target_modules(submodules: List[str]) -> List[str]:
     """Filters a list mvn submodule paths. Returns a list of paths to submodules that contain a target directory."""
-    return filter(has_target_dir, submodules)
+    return list(filter(has_target_dir, submodules))
 
 
 def has_target_dir(path: str) -> bool:
