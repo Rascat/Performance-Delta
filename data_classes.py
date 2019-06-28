@@ -93,12 +93,13 @@ class BenchmarkStatistics:
         self._delta_threshold = delta_threshold
     
     @property
-    def commits(self) -> List[Any]:
+    def commits(self) -> List['CommitStatistics']:
         return self._commits
     
     @commits.setter
-    def commtis(self, commits: List[Any]) -> None:
+    def commits(self, commits: List['CommitStatistics']) -> None:
         self._commits = commits
+
 
 class CommitStatistics:
 
@@ -127,7 +128,7 @@ class CommitStatistics:
     
     @property
     def speedup(self) -> float:
-        return self._runtime
+        return self._speedup
     
     @speedup.setter
     def speedup(self, speedup: float) -> None:
