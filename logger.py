@@ -1,15 +1,11 @@
 import sys
+import json
 from os import path
-from typing import Dict
+from typing import Dict, List, Any
 
 import utils
 
-
-def warn(current_commit: str, next_commit: str, delta: float, threshold: float):
-    print("WARNING: {} introduced performance change. Delta: {}. Threshold: {}.".format(current_commit, delta, threshold), file=sys.stderr)
-
-
-def log(statistics: Dict, dest_dir: str = None):
+def log_statistics(statistics: Dict[str, Any], dest_dir: str = None) -> None:
     """Logs data contained by dict to the specified directory.
     
     The filename of a given statistics dict is equal to the test name.
@@ -23,6 +19,15 @@ def log(statistics: Dict, dest_dir: str = None):
         destination = path.join(dest_dir, statistics['test_name'])
         with open(destination, "w") as file:
             file.write(statistics_str)
+
+
+def log_salient_commits(salient_commits: List[Dict[str, Any]], dest_dir: str = None) -> None:
+    data = json.dumps(salient_commits)
+    if dest_dir is None:
+        print(data)
+    else:
+        with open(dest_dir, 'w') as file:
+            file.write(data)
 
 
 def format_statistics(statistics: Dict) -> str:

@@ -1,11 +1,12 @@
 import argparse
-import sys
 import os
+import sys
+from typing import List
 
 import analyzer
 import runner
 import utils
-from typing import List
+
 
 def csv_list(string: str) -> List[str]:
     return string.split(',')
@@ -40,7 +41,4 @@ def main():
     analyzer.analyze(log_dir)
 
 
-# argv[1]: path to maven project
-# argv[2]: hash of commit where to start test exection
-# argv[3]: hash of commit where to end test execution
 if __name__ == "__main__": main()

@@ -2,7 +2,7 @@ import glob
 import os.path
 from typing import List
 
-import constants
+import const
 
 
 def get_parent_dir(child_dir: str) -> str:
@@ -13,7 +13,7 @@ def get_parent_dir(child_dir: str) -> str:
 def get_default_log_dir(path_to_repo: str) -> str:
     """Returns path to dir where test execution data and statistics are being written to."""
     parent_dir = get_parent_dir(path_to_repo)
-    return os.path.join(parent_dir, constants.RESULTS_DIRECTORY)
+    return os.path.join(parent_dir, const.RESULTS_DIRECTORY)
 
 
 def get_filenames_by_type(path: str, filetype: str) -> List[str]:
