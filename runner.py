@@ -6,6 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, List
+from junitparser import JUnitXml
 
 from git import Repo  # type: ignore
 
@@ -13,12 +14,12 @@ import constants
 import utils
 
 
-def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str, test_classes: List[str] = None):
+def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str, branch = 'master', test_classes: List[str] = None):
     """Runs a maven repositories test suite over a range of commits and logs commit specific execution times."""
     repo = Repo(path_to_repo)
     path_to_parent_pom = os.path.join(path_to_repo, constants.POM)
     
-    commit_list = list(repo.iter_commits('master')) # list of all commits in branch master
+    commit_list = list(repo.iter_commits(branch)) # list of all commits in branch master
 
     index_start = commit_list.index(repo.commit(start_commit))
     index_end = commit_list.index(repo.commit(end_commit))
@@ -89,8 +90,10 @@ def has_target_dir(path: str) -> bool:
 
 def collect_surefire_reports(project_root: str) -> List[str]:
     """Returns a list of filenames for files containing test execution data."""
-    path_to_reports = os.path.join(project_root, constants.MVN_TARGET_DIR, constants.SUREFIRE_REPORTS_DIR)
-    return utils.get_filenames_by_type(path_to_reports, "txt")
+    path_to_reports = os.path.join(project_root, constants.MVN_TARGET_DIR, constants.SUREFIRE_REPORTS_DIR, 'junitreports')
+    if not os.path.isdir(path_to_reports):
+        path_to_reports = os.path.join(project_root, constants.MVN_TARGET_DIR, constants.SUREFIRE_REPORTS_DIR)
+    return utils.get_filenames_by_type(path_to_reports, 'xml')
 
 
 def group_logs_by_test_name(log_list: List) -> List[List[Dict]]:

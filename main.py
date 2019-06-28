@@ -18,6 +18,7 @@ def main():
     parser.add_argument('-p', '--path', type=str, help="path to maven project, defaults to the current working directory.")
     parser.add_argument('-d', '--destination', type=str, help="path to directory where resulting artifacts will be safed. Defaults to parent directory of project root.")
     parser.add_argument('-c', '--test-classes', type=csv_list, help='comma separated list of test classes to be run.')
+    parser.add_argument('-b', '--branch', type=str, help='name of the branch to test.')
 
     args = parser.parse_args()
 
@@ -30,13 +31,18 @@ def main():
         log_dir = utils.get_default_log_dir(project_root)
     else:
         log_dir = args.destination
+    
+    if args.branch is None:
+        branch = 'master'
+    else:
+        branch = args.branch
 
     test_classes = args.test_classes
 
     commit_from = args.start
     commit_to = args.end
 
-    runner.run(path_to_repo=project_root, path_to_log=log_dir, start_commit=commit_from, end_commit=commit_to, test_classes=test_classes)
+    runner.run(path_to_repo=project_root, path_to_log=log_dir, start_commit=commit_from, end_commit=commit_to, test_classes=test_classes, branch=branch)
     analyzer.analyze(log_dir)
 
 
