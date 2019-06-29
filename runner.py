@@ -36,17 +36,16 @@ def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str,
 
     for commit in commit_list:
         repo.git.checkout(commit.hexsha)
-        if test_classes is None:
-            run_mvn_test(path_to_parent_pom)
-        else:
-            run_mvn_test_selected(path_to_parent_pom, test_classes)
+        
+        run_mvn_test(path_to_parent_pom, test_classes=test_classes)
 
         submodules = filter_target_modules(collect_submodules(path_to_parent_pom))
 
         for submodule in submodules:
             reports = collect_surefire_reports(submodule)
             for report in reports:
-                report_data = parser.parse_report(report)
+                report_xml = JUnitXml.fromfile(report)
+                report_data = parser.parse_junit_xml(report_xml)
                 log_data = {"commit": commit.hexsha, "report": report_data}
                 log_list.append(log_data)
     
@@ -57,15 +56,14 @@ def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str,
     repo.git.checkout("master")
 
 
-def run_mvn_test(path_to_parent_pom: str):
+def run_mvn_test(path_to_parent_pom: str, test_classes: List[str] = None) -> None:
     """Triggers test execution with surefire for the maven project specified in the pom."""
-    subprocess.run(["mvn clean test -f " + path_to_parent_pom], shell=True)
+    if test_classes is None:
+        cmd = "mvn clean test -f {pom}".format(pom=path_to_parent_pom)
+    else:
+        comma_separated_classes = ",".join(test_classes)
+        cmd = "mvn clean test -DfailIfNoTests=false -Dtest={classes} -am -f {pom}".format(pom=path_to_parent_pom, classes=comma_separated_classes)
 
-
-def run_mvn_test_selected(path_to_parent_pom: str, test_classes: List[str]):
-    """Triggers test execution with surefire for a selection of test classes"""
-    comma_separated_classes = ",".join(test_classes)
-    cmd = "mvn clean test -DfailIfNoTests=false -Dtest={classes} -am -f {pom}".format(pom=path_to_parent_pom, classes=comma_separated_classes)
     subprocess.run([cmd], shell=True)
 
 
@@ -89,10 +87,14 @@ def has_target_dir(path: str) -> bool:
 
 
 def collect_surefire_reports(project_root: str) -> List[str]:
-    """Returns a list of filenames for files containing test execution data."""
+    """Returns a list of filenames for files containing test execution data.
+    
+    Assumes that reports are located either under module-root/target/surefire-reports or module_root/target/surefire-reports/junitreports
+    """
     path_to_reports = os.path.join(project_root, constants.MVN_TARGET_DIR, constants.SUREFIRE_REPORTS_DIR, 'junitreports')
     if not os.path.isdir(path_to_reports):
         path_to_reports = os.path.join(project_root, constants.MVN_TARGET_DIR, constants.SUREFIRE_REPORTS_DIR)
+        
     return utils.get_filenames_by_type(path_to_reports, 'xml')
 
 
