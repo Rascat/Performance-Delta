@@ -2,7 +2,7 @@ import sys
 import const
 import os
 from os import path
-from typing import Dict
+from typing import Dict, List, Any
 
 import utils
 
@@ -11,7 +11,7 @@ def warn(current_commit: str, next_commit: str, delta: float, threshold: float):
     print("WARNING: {} introduced performance change. Delta: {}. Threshold: {}.".format(current_commit, delta, threshold), file=sys.stderr)
 
 
-def log(statistics: Dict, dest_dir: str = None):
+def log_statistics(statistics: Dict, dest_dir: str = None):
     """Logs data contained by dict to the specified directory.
     
     The filename of a given statistics dict is equal to the test name.
@@ -28,6 +28,17 @@ def log(statistics: Dict, dest_dir: str = None):
             file.write(statistics_str)
 
 
+def log_salient_commits(salient_commits: Dict[str, List[Any]], dest_dir: str = None) -> None:
+    salient_commits_str = format_salient_commits(salient_commits)
+    if dest_dir is None:
+        print(salient_commits_str)
+    else:
+        stat_dir = os.path.join(dest_dir, const.STATISTICS_DIR)
+        filename = path.join(stat_dir, 'salient_commits.txt')
+        with open(filename, 'w') as file:
+            file.write(salient_commits_str)
+
+
 def format_statistics(statistics: Dict) -> str:
     """Formats a given test statistics dict and returns a string representation"""
     header = ("{s[test_name]}\n\n"
@@ -42,3 +53,17 @@ def format_statistics(statistics: Dict) -> str:
         records += "{c[hexsha]:<42}{c[runtime]:<9.3f}{c[runtime_delta]:<9.3f}{c[speedup]:<5.3f}\n".format(c=commit_statistics)
     
     return header + top_row + records
+
+
+def format_salient_commits(salient_commits: Dict[str, List[Any]]) -> str:
+    header = "The following commits introduced changes that extended the runtime of some test classes.\n\n"
+    body = ""
+    for key in salient_commits.keys():
+        body += "{hexsha}: ".format(hexsha=key)
+        for statistic in salient_commits[key]:
+            body += "{s[test_name]} [{s[runtime_delta]}s],".format(s=statistic)
+        body = body[:-1] # remove last char, ','
+        body += "\n"
+    
+    return header + body
+

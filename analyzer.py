@@ -25,10 +25,10 @@ def analyze(path_to_log_dir: str) -> None:
             report_list = json.load(file)
             statistics = analyze_report_list(report_list)
             statistics_list.append(statistics)
-            logger.log(statistics, dest_dir = path_to_log_dir)
+            logger.log_statistics(statistics, dest_dir = path_to_log_dir)
     
     salient_commits = find_salient_commits(statistics_list)
-    print(salient_commits)
+    logger.log_salient_commits(salient_commits, dest_dir=path_to_log_dir)
 
     
 def find_salient_commits(statistics_list: List[Dict[str, Any]]) -> Dict[str, List[str]]:
@@ -42,7 +42,7 @@ def find_salient_commits(statistics_list: List[Dict[str, Any]]) -> Dict[str, Lis
                 rev_id = commit[const.HEXSHA]
                 data = commit
                 data[const.TEST_NAME] = test_name
-                del data[const.HEXSHA]
+                data.pop(const.HEXSHA, None)
 
                 if rev_id in result:
                     result[rev_id].append(data)
