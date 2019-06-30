@@ -16,7 +16,7 @@ def main():
     parser.add_argument('start', type=str, help="hash of commit to start from")
     parser.add_argument('end', type=str, help="hash of commit to go to, including")
     parser.add_argument('-p', '--path', type=str, help="path to maven project, defaults to the current working directory.")
-    parser.add_argument('-d', '--destination', type=str, help="path to directory where resulting artifacts will be safed. Defaults to parent directory of project root.")
+    parser.add_argument('-d', '--destination', type=str, help="path to directory where resulting artifacts will be saved. Defaults to parent directory of project root.")
     parser.add_argument('-c', '--test-classes', type=csv_list, help='comma separated list of test classes to be run.')
     parser.add_argument('-b', '--branch', type=str, help='name of the branch to test.')
 

@@ -6,18 +6,18 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, List
-from junitparser import JUnitXml
 
 from git import Repo  # type: ignore
+from junitparser import JUnitXml  # type: ignore
 
-import constants
+import const
 import utils
 
 
 def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str, branch = 'master', test_classes: List[str] = None):
     """Runs a maven repositories test suite over a range of commits and logs commit specific execution times."""
     repo = Repo(path_to_repo)
-    path_to_parent_pom = os.path.join(path_to_repo, constants.POM)
+    path_to_parent_pom = os.path.join(path_to_repo, const.POM)
     
     commit_list = list(repo.iter_commits(branch)) # list of all commits in branch master
 
@@ -82,7 +82,7 @@ def filter_target_modules(submodules: List[str]) -> List[str]:
 def has_target_dir(path: str) -> bool:
     """Returns True iff the specified directory contains a directory named 'target'"""
     sub_dirs = os.listdir(path)
-    return constants.MVN_TARGET_DIR in sub_dirs and os.path.isdir(os.path.join(path, constants.MVN_TARGET_DIR))
+    return const.MVN_TARGET_DIR in sub_dirs and os.path.isdir(os.path.join(path, const.MVN_TARGET_DIR))
 
 
 
@@ -91,9 +91,9 @@ def collect_surefire_reports(project_root: str) -> List[str]:
     
     Assumes that reports are located either under module-root/target/surefire-reports or module_root/target/surefire-reports/junitreports
     """
-    path_to_reports = os.path.join(project_root, constants.MVN_TARGET_DIR, constants.SUREFIRE_REPORTS_DIR, 'junitreports')
+    path_to_reports = os.path.join(project_root, const.MVN_TARGET_DIR, const.SUREFIRE_REPORTS_DIR, 'junitreports')
     if not os.path.isdir(path_to_reports):
-        path_to_reports = os.path.join(project_root, constants.MVN_TARGET_DIR, constants.SUREFIRE_REPORTS_DIR)
+        path_to_reports = os.path.join(project_root, const.MVN_TARGET_DIR, const.SUREFIRE_REPORTS_DIR)
         
     return utils.get_filenames_by_type(path_to_reports, 'xml')
 

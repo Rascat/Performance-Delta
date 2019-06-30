@@ -1,4 +1,6 @@
 import sys
+import const
+import os
 from os import path
 from typing import Dict
 
@@ -19,8 +21,9 @@ def log(statistics: Dict, dest_dir: str = None):
     if dest_dir is None:
         print(statistics_str)
     else:
-        utils.create_dir(dest_dir)
-        destination = path.join(dest_dir, statistics['test_name'])
+        stat_dir = os.path.join(dest_dir, const.STATISTICS_DIR)
+        utils.create_dir(stat_dir)
+        destination = path.join(stat_dir, statistics['test_name'])
         with open(destination, "w") as file:
             file.write(statistics_str)
 
@@ -30,7 +33,7 @@ def format_statistics(statistics: Dict) -> str:
     header = ("{s[test_name]}\n\n"
                 "Std deviation: {s[std_dev]}\n"
                 "Delta threshold: {s[delta_threshold]}\n"
-                "Std deviation threshold: {s[std_dev_threshold]}\n\n").format(s=statistics)
+                "Speedup threshold: {s[speedup_threshold]}\n\n").format(s=statistics)
     
     top_row = "{:<42}{:<9}{:<9}{:<5}\n".format('commit', 'runtime','delta', 'speedup')
 
