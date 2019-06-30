@@ -59,11 +59,10 @@ def format_salient_commits(salient_commits: Dict[str, List[Any]]) -> str:
     header = "The following commits introduced changes that extended the runtime of some test classes.\n\n"
     body = ""
     for key in salient_commits.keys():
-        body += "{hexsha}: ".format(hexsha=key)
+        body += "{hexsha}:".format(hexsha=key)
         for statistic in salient_commits[key]:
-            body += "{s[test_name]} [{s[runtime_delta]}s],".format(s=statistic)
-        body = body[:-1] # remove last char, ','
-        body += "\n"
+            body += "\n{s[test_name]} [{s[runtime_delta]:.4f}s] [{s[speedup]:.4f}]".format(s=statistic)
+        body += "\n\n"
     
     return header + body
 

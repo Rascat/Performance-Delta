@@ -9,7 +9,7 @@ import logger
 import utils
 
 DELTA_THRESHOLD = 2 # seconds
-SPEEDUP_THRESHOLD = 1.0
+SPEEDUP_THRESHOLD = 2.0
 
 
 def analyze(path_to_log_dir: str) -> None:
