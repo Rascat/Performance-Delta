@@ -1,3 +1,4 @@
+import argparse
 import glob
 import json
 import os
@@ -107,3 +108,12 @@ def compute_std_deviation(log_list: List[Dict]) -> float:
     """
     runtimes = [log[const.REPORT][const.TIME_ELAPSED] for log in log_list]
     return statistics.stdev(runtimes)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Analyze reports")
+    parser.add_argument('directory', type=str, help='Path to a directory where analyzable reports reside')
+
+    args = parser.parse_args()
+
+    analyze(args.directory)

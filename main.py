@@ -42,11 +42,11 @@ def main():
     commit_from = args.start
     commit_to = args.end
 
-    # runner.run(path_to_repo=project_root, path_to_log=log_dir, start_commit=commit_from, end_commit=commit_to, test_classes=test_classes, branch=branch)
+    runner.run(path_to_repo=project_root, path_to_log=log_dir, start_commit=commit_from, end_commit=commit_to, test_classes=test_classes, branch=branch)
     analyzer.analyze(log_dir)
 
 
 # argv[1]: path to maven project
-# argv[2]: hash of commit where to start test exection
+# argv[2]: hash of commit where to start test execution
 # argv[3]: hash of commit where to end test execution
 if __name__ == "__main__": main()
