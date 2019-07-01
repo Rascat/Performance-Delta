@@ -111,9 +111,15 @@ def compute_std_deviation(log_list: List[Dict]) -> float:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Analyze reports")
+    parser = argparse.ArgumentParser(description='Analyze reports')
     parser.add_argument('directory', type=str, help='Path to a directory where analyzable reports reside')
+    parser.add_argument('--delta-threshold', type=str, help='Set threshold to which the delta of the current commit compared to the next older one is tolerable')
+    parser.add_argument('--speedup-threshold', type=str, help='Set threshold to which the relation of the current runtime to the former one is tolerable')
 
     args = parser.parse_args()
+    if args.delta_threshold is not None:
+        DELTA_THRESHOLD = args.delta_threshold
+    if args.speedup_threshold is not None:
+        SPEEDUP_THRESHOLD = args.speedup_threshold
 
     analyze(args.directory)
