@@ -53,7 +53,7 @@ def run(path_to_repo: str, path_to_log: str, start_commit: str, end_commit: str,
         write_log_list(grouped_list, path_to_log)
     
     # checkout master again
-    repo.git.checkout("master")
+    repo.git.checkout(branch)
 
 
 def run_mvn_test(path_to_parent_pom: str, test_classes: List[str] = None) -> None:
