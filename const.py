@@ -4,9 +4,9 @@ MVN_TARGET_DIR = 'target'
 SUREFIRE_REPORTS_DIR = 'surefire-reports'
 STATISTICS_DIR = 'statistics'
 
-########################
+###########################
 # Report object constants #
-########################
+###########################
 
 COMMIT = 'commit'
 REPORT = 'report'

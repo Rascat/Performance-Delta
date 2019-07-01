@@ -33,6 +33,7 @@ def analyze(path_to_log_dir: str) -> None:
 
     
 def find_salient_commits(statistics_list: List[Dict[str, Any]]) -> Dict[str, List[str]]:
+    """From a list of commit statistics, return a dict where a revision id points to list of statistics that are salient."""
     result = {} # type: Dict[str, List[str]]
     for statistics in statistics_list:
         test_name = statistics[const.TEST_NAME]
@@ -54,6 +55,7 @@ def find_salient_commits(statistics_list: List[Dict[str, Any]]) -> Dict[str, Lis
 
 
 def is_salient(commit_statistics: Dict[str, Any]) -> bool:
+    """Retruns a boolean indication whether a commit statistics object is salient or not."""
     return (commit_statistics[const.RUNTIME_DELTA] > DELTA_THRESHOLD
         or commit_statistics[const.SPEEDUP] > SPEEDUP_THRESHOLD)
 
