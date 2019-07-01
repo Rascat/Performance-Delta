@@ -33,3 +33,34 @@ def create_dir(path: str) -> str:
             print("Successfully created the directory %s" % path)
     
     return path
+
+
+def is_named_tuple(x):
+    """Copy pasted from stack overflow
+    
+    https://stackoverflow.com/questions/33181170/how-to-convert-a-nested-namedtuple-to-a-dict
+    """
+    _type = type(x)
+    bases = _type.__bases__
+    if len(bases) != 1 or bases[0] != tuple:
+        return False
+    fields = getattr(_type, '_fields', None)
+    if not isinstance(fields, tuple):
+        return False
+    return all(type(i)==str for i in fields)
+
+def unpack(obj):
+    """Copy pasted from stack overflow
+    
+    https://stackoverflow.com/questions/33181170/how-to-convert-a-nested-namedtuple-to-a-dict
+    """
+    if isinstance(obj, dict):
+        return {key: unpack(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [unpack(value) for value in obj]
+    elif is_named_tuple(obj):
+        return {key: unpack(value) for key, value in obj._asdict().items()}
+    elif isinstance(obj, tuple):
+        return tuple(unpack(value) for value in obj)
+    else:
+        return obj
