@@ -3,11 +3,13 @@ import glob
 import json
 import os
 import statistics
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 import const
 import logger
 import utils
+from objects import (BenchmarkStatistics, CommitReport, JUnitReport,
+                     build_commit_report)
 
 DELTA_THRESHOLD = 2 # seconds
 SPEEDUP_THRESHOLD = 2.0
@@ -23,8 +25,9 @@ def analyze(path_to_log_dir: str) -> None:
     statistics_list = []
     for filename in filenames:
         with open(filename) as file:
-            report_list = json.load(file)
-            statistics = analyze_report_list(report_list)
+            report_data_list = json.load(file)
+            commit_report_list = list(map(build_commit_report, report_data_list))
+            statistics = analyze_report_list(commit_report_list)
             statistics_list.append(statistics)
             logger.log_statistics(statistics, dest_dir = path_to_log_dir)
     
@@ -66,18 +69,18 @@ def get_log_file_names(path_to_log_dir: str) -> List[str]:
     return filenames
 
 
-def analyze_report_list(log_list: List[Dict[str, Any]]) -> Dict:
+def analyze_report_list(reports: List[CommitReport]) -> BenchmarkStatistics:
     """Computes benchmark statistics from a list of test data.
     
     Returns a dict containing the statistics belonging to a test suite over a list of commits.
     """
-    list_length = len(log_list)
+    list_length = len(reports)
     std_dev = 0.0
     if list_length >= 2:
-        std_dev = compute_std_deviation(log_list)
+        std_dev = compute_std_deviation(reports)
 
     analysis_result = {}
-    analysis_result[const.TEST_NAME] = log_list[0].get(const.REPORT).get(const.TEST_NAME)
+    analysis_result[const.TEST_NAME] = reports[0].get(const.REPORT).get(const.TEST_NAME)
     analysis_result[const.STD_DEVIATION] = std_dev
     analysis_result[const.DELTA_THRESHOLD] = DELTA_THRESHOLD
     analysis_result[const.SPEEDUP_THRESHOLD] = SPEEDUP_THRESHOLD
@@ -85,9 +88,9 @@ def analyze_report_list(log_list: List[Dict[str, Any]]) -> Dict:
 
     # compare perf of commit X with performance of following commit X+1 (an earlier version)
     for i in range(list_length - 1):
-        current_commit = log_list[i][const.COMMIT]
-        current_runtime = log_list[i][const.REPORT][const.TIME_ELAPSED]
-        next_runtime = log_list[i + 1][const.REPORT][const.TIME_ELAPSED]
+        current_commit = reports[i][const.COMMIT]
+        current_runtime = reports[i][const.REPORT][const.TIME_ELAPSED]
+        next_runtime = reports[i + 1][const.REPORT][const.TIME_ELAPSED]
 
         runtime_delta = current_runtime - next_runtime
         speedup = current_runtime / next_runtime if int(next_runtime) is not 0 else 0
@@ -103,12 +106,12 @@ def analyze_report_list(log_list: List[Dict[str, Any]]) -> Dict:
     return  analysis_result
 
 
-def compute_std_deviation(log_list: List[Dict]) -> float:
+def compute_std_deviation(reports: List[CommitReport]) -> float:
     """Returns the std deviation over all test execution times in list of test data objects.
     
     List must contain at least two data points.
     """
-    runtimes = [log[const.REPORT][const.TIME_ELAPSED] for log in log_list]
+    runtimes = [report.report.time_elapsed for report in reports]
     return statistics.stdev(runtimes)
 
 
