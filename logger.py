@@ -1,20 +1,21 @@
-import sys
-import const
 import os
+import sys
 from os import path
-from typing import Dict, List, Any
-from objects import BenchmarkStatistics
+from typing import Any, Dict, List
 
+import const
 import utils
+from objects import BenchmarkStatistics
 
 
 def warn(current_commit: str, next_commit: str, delta: float, threshold: float):
-    print("WARNING: {} introduced performance change. Delta: {}. Threshold: {}.".format(current_commit, delta, threshold), file=sys.stderr)
+    print("WARNING: {} introduced performance change. Delta: {}. Threshold: {}.".format(
+        current_commit, delta, threshold), file=sys.stderr)
 
 
 def log_statistics(statistics: BenchmarkStatistics, dest_dir: str = None):
     """Logs data contained by dict to the specified directory.
-    
+
     The filename of a given statistics dict is equal to the test name.
     If no path to a destination directory is provided, the data is printed to std out.
     """
@@ -43,16 +44,18 @@ def log_salient_commits(salient_commits: Dict[str, List[Any]], dest_dir: str = N
 def format_statistics(statistics: BenchmarkStatistics) -> str:
     """Formats a given test statistics dict and returns a string representation"""
     header = ("{s.test_name}\n\n"
-                "Std deviation: {s.std_dev}\n"
-                "Delta threshold: {s.delta_threshold}\n"
-                "Speedup threshold: {s.speedup_threshold}\n\n").format(s=statistics)
-    
-    top_row = "{:<42}{:<9}{:<9}{:<5}\n".format('commit', 'runtime','delta', 'speedup')
+              "Std deviation: {s.std_dev}\n"
+              "Delta threshold: {s.delta_threshold}\n"
+              "Speedup threshold: {s.speedup_threshold}\n\n").format(s=statistics)
+
+    top_row = "{:<42}{:<9}{:<9}{:<5}\n".format(
+        'commit', 'runtime', 'delta', 'speedup')
 
     records = ""
     for commit_statistics in statistics.commits:
-        records += "{c.hexsha:<42}{c.runtime:<9.3f}{c.runtime_delta:<9.3f}{c.speedup:<5.3f}\n".format(c=commit_statistics)
-    
+        records += "{c.hexsha:<42}{c.runtime:<9.3f}{c.runtime_delta:<9.3f}{c.speedup:<5.3f}\n".format(
+            c=commit_statistics)
+
     return header + top_row + records
 
 
@@ -62,8 +65,8 @@ def format_salient_commits(salient_commits: Dict[str, List[Any]]) -> str:
     for key in salient_commits.keys():
         body += "{hexsha}:".format(hexsha=key)
         for statistic in salient_commits[key]:
-            body += "\n{s[test_name]} [{s[runtime_delta]:.4f}s] [{s[speedup]:.4f}]".format(s=statistic)
+            body += "\n{s[test_name]} [{s[runtime_delta]:.4f}s] [{s[speedup]:.4f}]".format(
+                s=statistic)
         body += "\n\n"
-    
-    return header + body
 
+    return header + body
