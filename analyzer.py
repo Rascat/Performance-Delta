@@ -8,8 +8,8 @@ from typing import Any, Dict, List
 import const
 import logger
 import utils
-from objects import (BenchmarkStatistics, CommitReport, JUnitReport,
-                     CommitStatistics, build_commit_report)
+from objects import (BenchmarkStatistics, CommitReport, CommitStatistics,
+                     JUnitReport, build_commit_report)
 
 DELTA_THRESHOLD = 2  # seconds
 SPEEDUP_THRESHOLD = 2.0
