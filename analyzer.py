@@ -9,9 +9,9 @@ import const
 import logger
 import utils
 from objects import (BenchmarkStatistics, CommitReport, JUnitReport,
-                     build_commit_report)
+                     CommitStatistics, build_commit_report)
 
-DELTA_THRESHOLD = 2 # seconds
+DELTA_THRESHOLD = 2  # seconds
 SPEEDUP_THRESHOLD = 2.0
 
 
@@ -26,26 +26,27 @@ def analyze(path_to_log_dir: str) -> None:
     for filename in filenames:
         with open(filename) as file:
             report_data_list = json.load(file)
-            commit_report_list = list(map(build_commit_report, report_data_list))
+            commit_report_list = list(
+                map(build_commit_report, report_data_list))
             statistics = analyze_report_list(commit_report_list)
             statistics_list.append(statistics)
-            logger.log_statistics(statistics, dest_dir = path_to_log_dir)
-    
+            logger.log_statistics(statistics, dest_dir=path_to_log_dir)
+
     salient_commits = find_salient_commits(statistics_list)
     logger.log_salient_commits(salient_commits, dest_dir=path_to_log_dir)
 
-    
-def find_salient_commits(statistics_list: List[Dict[str, Any]]) -> Dict[str, List[str]]:
-    """From a list of commit statistics, return a dict where a revision id points to list of statistics that are salient."""
-    result = {} # type: Dict[str, List[str]]
-    for statistics in statistics_list:
-        test_name = statistics[const.TEST_NAME]
-        commits = statistics[const.COMMITS]
 
-        for commit in commits:
-            if is_salient(commit):
-                rev_id = commit[const.HEXSHA]
-                data = commit
+def find_salient_commits(benchmark_statistics_list: List[BenchmarkStatistics]) -> Dict[str, List[str]]:
+    """From a list of commit statistics, return a dict where a revision id points to list of statistics that are salient."""
+    result = {}  # type: Dict[str, List[str]]
+    for benchmark_statistics in benchmark_statistics_list:
+        test_name = benchmark_statistics.test_name
+        commit_statistics_list = benchmark_statistics.commits
+
+        for commit_statistics in commit_statistics_list:
+            if is_salient(commit_statistics):
+                rev_id = commit_statistics.hexsha
+                data = utils.unpack(commit_statistics)
                 data[const.TEST_NAME] = test_name
                 data.pop(const.HEXSHA, None)
 
@@ -57,10 +58,10 @@ def find_salient_commits(statistics_list: List[Dict[str, Any]]) -> Dict[str, Lis
     return result
 
 
-def is_salient(commit_statistics: Dict[str, Any]) -> bool:
+def is_salient(commit_statistics: CommitStatistics) -> bool:
     """Retruns a boolean indication whether a commit statistics object is salient or not."""
-    return (commit_statistics[const.RUNTIME_DELTA] > DELTA_THRESHOLD
-        or commit_statistics[const.SPEEDUP] > SPEEDUP_THRESHOLD)
+    return (commit_statistics.runtime_delta > DELTA_THRESHOLD
+            or commit_statistics.speedup > SPEEDUP_THRESHOLD)
 
 
 def get_log_file_names(path_to_log_dir: str) -> List[str]:
@@ -71,7 +72,7 @@ def get_log_file_names(path_to_log_dir: str) -> List[str]:
 
 def analyze_report_list(reports: List[CommitReport]) -> BenchmarkStatistics:
     """Computes benchmark statistics from a list of test data.
-    
+
     Returns a dict containing the statistics belonging to a test suite over a list of commits.
     """
     list_length = len(reports)
@@ -79,36 +80,40 @@ def analyze_report_list(reports: List[CommitReport]) -> BenchmarkStatistics:
     if list_length >= 2:
         std_dev = compute_std_deviation(reports)
 
-    analysis_result = {}
-    analysis_result[const.TEST_NAME] = reports[0].get(const.REPORT).get(const.TEST_NAME)
-    analysis_result[const.STD_DEVIATION] = std_dev
-    analysis_result[const.DELTA_THRESHOLD] = DELTA_THRESHOLD
-    analysis_result[const.SPEEDUP_THRESHOLD] = SPEEDUP_THRESHOLD
-    analysis_result[const.COMMITS] = []
+    commit_statistics_list = []
 
     # compare perf of commit X with performance of following commit X+1 (an earlier version)
     for i in range(list_length - 1):
-        current_commit = reports[i][const.COMMIT]
-        current_runtime = reports[i][const.REPORT][const.TIME_ELAPSED]
-        next_runtime = reports[i + 1][const.REPORT][const.TIME_ELAPSED]
+        current_commit = reports[i].commit
+        current_runtime = reports[i].report.time_elapsed
+        next_runtime = reports[i + 1].report.time_elapsed
 
         runtime_delta = current_runtime - next_runtime
-        speedup = current_runtime / next_runtime if int(next_runtime) is not 0 else 0
+        speedup = current_runtime / \
+            next_runtime if int(next_runtime) is not 0 else 0
 
-        commit_statistics = {}
-        commit_statistics[const.HEXSHA] = current_commit
-        commit_statistics[const.RUNTIME] = current_runtime
-        commit_statistics[const.SPEEDUP] = speedup
-        commit_statistics[const.RUNTIME_DELTA] = runtime_delta
+        commit_statistics = CommitStatistics(
+            hexsha=current_commit,
+            runtime=current_runtime,
+            speedup=speedup,
+            runtime_delta=runtime_delta)
 
-        analysis_result[const.COMMITS].append(commit_statistics)
+        commit_statistics_list.append(commit_statistics)
+    
+    test_name = reports[0].report.test_name
+    benchmark_statistics = BenchmarkStatistics(
+        test_name=test_name,
+        std_dev=std_dev,
+        delta_threshold=DELTA_THRESHOLD,
+        speedup_threshold=SPEEDUP_THRESHOLD,
+        commits=commit_statistics_list)
 
-    return  analysis_result
+    return benchmark_statistics
 
 
 def compute_std_deviation(reports: List[CommitReport]) -> float:
     """Returns the std deviation over all test execution times in list of test data objects.
-    
+
     List must contain at least two data points.
     """
     runtimes = [report.report.time_elapsed for report in reports]
@@ -117,9 +122,12 @@ def compute_std_deviation(reports: List[CommitReport]) -> float:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Analyze reports')
-    parser.add_argument('directory', type=str, help='Path to a directory where analyzable reports reside')
-    parser.add_argument('--delta-threshold', type=str, help='Set threshold to which the delta of the current commit compared to the next older one is tolerable')
-    parser.add_argument('--speedup-threshold', type=str, help='Set threshold to which the relation of the current runtime to the former one is tolerable')
+    parser.add_argument('directory', type=str,
+                        help='Path to a directory where analyzable reports reside')
+    parser.add_argument('--delta-threshold', type=str,
+                        help='Set threshold to which the delta of the current commit compared to the next older one is tolerable')
+    parser.add_argument('--speedup-threshold', type=str,
+                        help='Set threshold to which the relation of the current runtime to the former one is tolerable')
 
     args = parser.parse_args()
     if args.delta_threshold is not None:
