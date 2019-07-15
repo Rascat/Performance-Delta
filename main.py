@@ -23,6 +23,8 @@ def main():
                         nargs='*', help='list of test classes to be run.')
     parser.add_argument('-b', '--branch', type=str, default="master",
                         help='name of the branch to test (defaults to "master").')
+    parser.add_argument('--invocation-count', type=int, metavar='count',
+                        help='the number of times each test should be invoked. Logging happens after the last run.', default=1)
 
     args = parser.parse_args()
 
@@ -50,9 +52,10 @@ def main():
 
     test_classes = args.test_classes
     branch = args.branch
+    invocation_count = args.invocation_count
 
     runner.run(path_to_repo=project_root, path_to_log=log_dir, commit_ids=commit_ids,
-               is_interval=is_interval, test_classes=test_classes, branch=branch)
+               is_interval=is_interval, test_classes=test_classes, branch=branch, invocation_count=invocation_count)
     analyzer.analyze(log_dir)
 
 
