@@ -3,6 +3,8 @@ import sys
 from os import path
 from typing import Any, Dict, List
 
+from tabulate import tabulate
+
 import const
 import utils
 from objects import BenchmarkStatistics
@@ -48,25 +50,18 @@ def format_statistics(statistics: BenchmarkStatistics) -> str:
               "Delta threshold: {s.delta_threshold}\n"
               "Speedup threshold: {s.speedup_threshold}\n\n").format(s=statistics)
 
-    top_row = "{:<42}{:<9}{:<9}{:<5}\n".format(
-        'commit', 'runtime', 'delta', 'speedup')
+    records = tabulate(utils.unpack(statistics.commits), headers="keys")
 
-    records = ""
-    for commit_statistics in statistics.commits:
-        records += "{c.hexsha:<42}{c.runtime:<9.3f}{c.runtime_delta:<9.3f}{c.speedup:<5.3f}\n".format(
-            c=commit_statistics)
-
-    return header + top_row + records
+    return header + records
 
 
 def format_salient_commits(salient_commits: Dict[str, List[Any]]) -> str:
-    header = "The following commits introduced changes that extended the runtime of some test classes.\n\n"
+    header = "The following commits introduced changes that extended the runtime of some test classes on branch {branch}.\n\n".format(
+        branch="master")
     body = ""
     for key in salient_commits.keys():
-        body += "{hexsha}:".format(hexsha=key)
-        for statistic in salient_commits[key]:
-            body += "\n{s[test_name]} [{s[runtime_delta]:.4f}s] [{s[speedup]:.4f}]".format(
-                s=statistic)
+        body += "{hexsha}:\n\n".format(hexsha=key)
+        body += tabulate(salient_commits[key], headers="keys")
         body += "\n\n"
 
     return header + body
