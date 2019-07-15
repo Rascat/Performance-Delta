@@ -14,7 +14,7 @@ import utils
 from objects import CommitReport, JUnitReport
 
 
-def run(path_to_repo: str, path_to_log: str, commit_ids: List[str], is_interval: bool, branch: str, test_classes: List[str] = None):
+def run(path_to_repo: str, path_to_log: str, commit_ids: List[str], is_interval: bool, branch: str, invocation_count: int, test_classes: List[str] = None):
     """Runs a maven repositories test suite over a range of commits and logs commit specific execution times."""
     repo = Repo(path_to_repo)
     path_to_parent_pom = os.path.join(path_to_repo, const.POM)
@@ -35,8 +35,9 @@ def run(path_to_repo: str, path_to_log: str, commit_ids: List[str], is_interval:
         selected_commits = commit_list[index_start: index_end + 1]
     else:
         # retrieve commit objects by id from the commit list
-        selected_commits = list(map(lambda x: commit_list[commit_list.index(repo.commit(x))], commit_ids))
-    
+        selected_commits = list(
+            map(lambda x: commit_list[commit_list.index(repo.commit(x))], commit_ids))
+
     utils.create_dir(path_to_log)
 
     commit_report_list = []  # type: List[CommitReport]
@@ -44,7 +45,8 @@ def run(path_to_repo: str, path_to_log: str, commit_ids: List[str], is_interval:
     for commit in selected_commits:
         repo.git.checkout(commit.hexsha)
 
-        run_mvn_test(path_to_parent_pom, test_classes=test_classes)
+        for i in range(invocation_count):
+            run_mvn_test(path_to_parent_pom, test_classes=test_classes)
 
         submodules = filter_target_modules(
             collect_submodules(path_to_parent_pom))
