@@ -1,6 +1,7 @@
 import glob
 import os.path
 from typing import List
+import subprocess
 
 import const
 
@@ -23,7 +24,7 @@ def get_filenames_by_type(path: str, filetype: str) -> List[str]:
 
 def create_dir(path: str) -> str:
     """Creates the specified directory if it is not already present."""
-    
+
     if not os.path.isdir(path):
         try:
             os.mkdir(path)
@@ -31,13 +32,13 @@ def create_dir(path: str) -> str:
             print("Creation of the directory %s failed" % path)
         else:
             print("Successfully created the directory %s" % path)
-    
+
     return path
 
 
 def is_named_tuple(x):
     """Copy pasted from stack overflow
-    
+
     https://stackoverflow.com/questions/33181170/how-to-convert-a-nested-namedtuple-to-a-dict
     """
     _type = type(x)
@@ -47,11 +48,12 @@ def is_named_tuple(x):
     fields = getattr(_type, '_fields', None)
     if not isinstance(fields, tuple):
         return False
-    return all(type(i)==str for i in fields)
+    return all(type(i) == str for i in fields)
+
 
 def unpack(obj):
     """Copy pasted from stack overflow
-    
+
     https://stackoverflow.com/questions/33181170/how-to-convert-a-nested-namedtuple-to-a-dict
     """
     if isinstance(obj, dict):
@@ -64,3 +66,10 @@ def unpack(obj):
         return tuple(unpack(value) for value in obj)
     else:
         return obj
+
+
+def fetch_maven_project_version(path_to_pom: str) -> str:
+    cmd = "mvn -f {pom} org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version".format(
+        pom=path_to_pom)
+    completed_process = subprocess.run([cmd], stdout=subprocess.PIPE, encoding='utf-8', shell=True)
+    return completed_process.stdout.splitlines()[22] # works only for gradoop
