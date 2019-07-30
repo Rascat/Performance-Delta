@@ -69,7 +69,24 @@ def unpack(obj):
 
 
 def fetch_maven_project_version(path_to_pom: str) -> str:
-    cmd = "mvn -f {pom} org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version".format(
+    cmd = "mvn -f {pom} org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout".format(
         pom=path_to_pom)
     completed_process = subprocess.run([cmd], stdout=subprocess.PIPE, encoding='utf-8', shell=True)
-    return completed_process.stdout.splitlines()[22] # works only for gradoop
+    return completed_process.stdout
+
+
+def mvn_set_dep_version(path_to_pom: str, group_id: str, version_nr: str) -> None:
+    cmd = 'mvn -f {pom} versions:use-dep-version -Dincludes={group_id} -DdepVersion={version}'.format(
+        pom=path_to_pom, group_id=group_id, version=version_nr)
+    
+    subprocess.run([cmd], shell=True)
+
+
+def mvn_package(path_to_pom: str) -> None:
+    cmd = 'mvn -f {pom} package'
+    subprocess.run([cmd], shell=True)
+    
+
+def mvn_exec_java(path_to_pom: str) -> None:
+    cmd = 'mvn -f {pom} exec:java'
+    subprocess.run([cmd], shell=True)

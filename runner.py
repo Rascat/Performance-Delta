@@ -69,11 +69,28 @@ def run(path_to_repo: str, path_to_log: str, commit_ids: List[str], is_interval:
 
                 commit_report_list.append(commit_report)
 
+        # install current revision
+        run_mvn_install(path_to_parent_pom)
+        # get version number
+        version_nr = utils.fetch_maven_project_version(path_to_parent_pom)
+        # build pipeline
+        path_to_pipeline = 'home/lulu/Code/gradooppipeline/pom.xml'
+        utils.mvn_set_dep_version(path_to_pipeline, 'org.gradoop', version_nr)
+        utils.mvn_package(path_to_pipeline)
+        # execute pipeline
+        utils.mvn_exec_java(path_to_pipeline)
+
     for grouped_list in group_commit_reports_by_test_name(commit_report_list):
         write_grouped_commit_reports(grouped_list, path_to_log)
 
     # checkout HEAD again
     repo.git.checkout(branch)
+
+
+def run_pipeline(path_to_pipeline: str, current_version: str) -> None:
+    path_to_pom = os.path.join(path_to_pipeline, 'pom.xml')
+    cmd = 'mvn -f {pom} exec:java'.format(pom=path_to_pom)
+    subprocess.run([cmd], shell=True)
 
 
 def run_mvn_test(path_to_parent_pom: str, test_classes: List[str] = None) -> None:
@@ -84,6 +101,13 @@ def run_mvn_test(path_to_parent_pom: str, test_classes: List[str] = None) -> Non
         comma_separated_classes = ",".join(test_classes)
         cmd = "mvn clean test -DfailIfNoTests=false -Dtest={classes} -am -f {pom}".format(
             pom=path_to_parent_pom, classes=comma_separated_classes)
+
+    subprocess.run([cmd], shell=True)
+
+
+def run_mvn_install(path_to_parent_pom: str) -> None:
+    """Installs the specified project to the local maven repository"""
+    cmd = 'mvn install -f {pom} -DskipTests'.format(pom=path_to_parent_pom)
 
     subprocess.run([cmd], shell=True)
 
