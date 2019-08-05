@@ -16,7 +16,7 @@ class JUnitReport(NamedTuple):
 
 class CommitReport(NamedTuple):
     """Data structure that links a JUnit report to a specific commit id"""
-    commit: str # commit revision id
+    commit: str  # commit revision id
     report: JUnitReport
 
 

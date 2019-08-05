@@ -48,7 +48,7 @@ def is_named_tuple(x):
     fields = getattr(_type, '_fields', None)
     if not isinstance(fields, tuple):
         return False
-    return all(type(i) == str for i in fields)
+    return all(isinstance(i, str) for i in fields)
 
 
 def unpack(obj):
@@ -69,24 +69,36 @@ def unpack(obj):
 
 
 def fetch_maven_project_version(path_to_pom: str) -> str:
+    print('Fetching version number of {pom}'.format(pom=path_to_pom))
     cmd = "mvn -f {pom} org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout".format(
         pom=path_to_pom)
-    completed_process = subprocess.run([cmd], stdout=subprocess.PIPE, encoding='utf-8', shell=True)
+    completed_process = subprocess.run(
+        [cmd],
+        stdout=subprocess.PIPE,
+        encoding='utf-8',
+        shell=True)
     return completed_process.stdout
 
 
-def mvn_set_dep_version(path_to_pom: str, group_id: str, version_nr: str) -> None:
+def mvn_set_dep_version(path_to_pom: str, group_id: str,
+                        version_nr: str) -> None:
+    print(
+        "Setting version of dependency  {group_id}.* to {version}".format(
+            group_id=group_id,
+            version=version_nr))
     cmd = 'mvn -f {pom} versions:use-dep-version -Dincludes={group_id} -DdepVersion={version}'.format(
         pom=path_to_pom, group_id=group_id, version=version_nr)
-    
+
     subprocess.run([cmd], shell=True)
 
 
 def mvn_package(path_to_pom: str) -> None:
-    cmd = 'mvn -f {pom} package'
+    print("Packaging {pom}.".format(pom=path_to_pom))
+    cmd = 'mvn -f {pom} package -q'.format(pom=path_to_pom)
     subprocess.run([cmd], shell=True)
-    
+
 
 def mvn_exec_java(path_to_pom: str) -> None:
-    cmd = 'mvn -f {pom} exec:java'
+    print("Running mvn exec:java on {pom}".format(pom=path_to_pom))
+    cmd = 'mvn -f {pom} exec:java -q'.format(pom=path_to_pom)
     subprocess.run([cmd], shell=True)

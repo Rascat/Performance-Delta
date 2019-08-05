@@ -10,7 +10,8 @@ import utils
 from objects import BenchmarkStatistics
 
 
-def warn(current_commit: str, next_commit: str, delta: float, threshold: float):
+def warn(current_commit: str, next_commit: str,
+         delta: float, threshold: float):
     print("WARNING: {} introduced performance change. Delta: {}. Threshold: {}.".format(
         current_commit, delta, threshold), file=sys.stderr)
 
@@ -32,7 +33,8 @@ def log_statistics(statistics: BenchmarkStatistics, dest_dir: str = None):
             file.write(statistics_str)
 
 
-def log_salient_commits(salient_commits: Dict[str, List[Any]], dest_dir: str = None) -> None:
+def log_salient_commits(
+        salient_commits: Dict[str, List[Any]], dest_dir: str = None) -> None:
     salient_commits_str = format_salient_commits(salient_commits)
     if dest_dir is None:
         print(salient_commits_str)

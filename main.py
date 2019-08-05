@@ -1,6 +1,5 @@
 import argparse
 import os
-import sys
 from typing import List
 
 import analyzer

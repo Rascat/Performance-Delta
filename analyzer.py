@@ -36,7 +36,8 @@ def analyze(path_to_log_dir: str) -> None:
     logger.log_salient_commits(salient_commits, dest_dir=path_to_log_dir)
 
 
-def find_salient_commits(benchmark_statistics_list: List[BenchmarkStatistics]) -> Dict[str, List[str]]:
+def find_salient_commits(
+        benchmark_statistics_list: List[BenchmarkStatistics]) -> Dict[str, List[str]]:
     """From a list of commit statistics, return a dict where a revision id points to list of statistics that are salient."""
     result = {}  # type: Dict[str, List[str]]
     for benchmark_statistics in benchmark_statistics_list:
@@ -82,7 +83,8 @@ def analyze_report_list(reports: List[CommitReport]) -> BenchmarkStatistics:
 
     commit_statistics_list = []
 
-    # compare perf of commit X with performance of following commit X+1 (an earlier version)
+    # compare perf of commit X with performance of following commit X+1 (an
+    # earlier version)
     for i in range(list_length - 1):
         current_commit = reports[i].commit
         current_runtime = reports[i].report.time_elapsed
@@ -99,7 +101,7 @@ def analyze_report_list(reports: List[CommitReport]) -> BenchmarkStatistics:
             runtime_delta=runtime_delta)
 
         commit_statistics_list.append(commit_statistics)
-    
+
     test_name = reports[0].report.test_name
     benchmark_statistics = BenchmarkStatistics(
         test_name=test_name,
