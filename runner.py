@@ -79,9 +79,9 @@ def run(path_to_repo: str, path_to_log: str,
     repo.git.checkout(branch)
 
 
-def run_pipeline(path_to_pipeline: str, current_version: str) -> None:
-    path_to_pom = os.path.join(path_to_pipeline, 'pom.xml')
-    cmd = 'mvn -f {pom} exec:java'.format(pom=path_to_pom)
+def run_jmh_benchmark(path_to_jar: str, forks: int, result_format: str, result_name: str) -> None:
+    cmd = 'java -jar {jar} -f {forks} -rf {result_format} -r {result_name}'.format(
+        jar=path_to_jar, forks=forks, result_format=result_format, result_name=result_name)
     subprocess.run([cmd], shell=True)
 
 
