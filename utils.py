@@ -96,9 +96,3 @@ def mvn_package(path_to_pom: str) -> None:
     print("Packaging {pom}.".format(pom=path_to_pom))
     cmd = 'mvn -f {pom} package -q'.format(pom=path_to_pom)
     subprocess.run([cmd], shell=True)
-
-
-def mvn_exec_java(path_to_pom: str) -> None:
-    print("Running mvn exec:java on {pom}".format(pom=path_to_pom))
-    cmd = 'mvn -f {pom} exec:java -q'.format(pom=path_to_pom)
-    subprocess.run([cmd], shell=True)

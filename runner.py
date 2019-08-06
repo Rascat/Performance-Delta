@@ -10,7 +10,7 @@ from junitparser import JUnitXml  # type: ignore
 
 import const
 import utils
-from objects import CommitReport, JUnitReport
+from objects import CommitReport, JUnitReport, JmhReport, build_jmh_report
 
 
 def run(path_to_repo: str, path_to_log: str,
@@ -41,6 +41,7 @@ def run(path_to_repo: str, path_to_log: str,
     utils.create_dir(path_to_log)
 
     commit_report_list = []  # type: List[CommitReport]
+    jmh_report_list = []  # type: List[JmhReport]
 
     for commit in selected_commits:
         repo.git.checkout(commit.hexsha)
@@ -70,18 +71,26 @@ def run(path_to_repo: str, path_to_log: str,
         utils.mvn_set_dep_version(path_to_pipeline, 'org.gradoop', version_nr)
         utils.mvn_package(path_to_pipeline)
         # execute pipeline
-        utils.mvn_exec_java(path_to_pipeline)
+        run_jmh_benchmark('/home/lulu/Code/gradooppipeline/target/gradoop-pipeline-1.0-SNAPSHOT-shaded.jar')
 
+        # read jmh-result file
+        with open('jmh-result.json') as file:
+            data = json.load(file)
+        # create JmhReport object
+        jmh_report = build_jmh_report(data)
+        jmh_report_list.append(jmh_report)
+        
     for grouped_list in group_commit_reports_by_test_name(commit_report_list):
         write_grouped_commit_reports(grouped_list, path_to_log)
+    
+    print(jmh_report_list)
 
     # checkout HEAD again
     repo.git.checkout(branch)
 
 
-def run_jmh_benchmark(path_to_jar: str, forks: int, result_format: str, result_name: str) -> None:
-    cmd = 'java -jar {jar} -f {forks} -rf {result_format} -r {result_name}'.format(
-        jar=path_to_jar, forks=forks, result_format=result_format, result_name=result_name)
+def run_jmh_benchmark(path_to_jar: str) -> None:
+    cmd = 'java -jar {jar}'.format(jar=path_to_jar)
     subprocess.run([cmd], shell=True)
 
 
