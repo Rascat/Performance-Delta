@@ -10,7 +10,7 @@ from junitparser import JUnitXml  # type: ignore
 
 import const
 import utils
-from objects import CommitReport, JUnitReport, JmhReport, build_jmh_report
+from objects import CommitReport, JUnitReport, JmhReport, build_jmh_report, create_commit_report, create_junit_report
 
 
 def run(path_to_repo: str, path_to_log: str,
@@ -26,7 +26,7 @@ def run(path_to_repo: str, path_to_log: str,
         index_start = commit_list.index(repo.commit(commit_ids[0]))
         index_end = commit_list.index(repo.commit(commit_ids[1]))
 
-        if (index_start >= index_end):
+        if index_start >= index_end:
             print(
                 "Error, wrong commit order. First commit must be younger than the second one.")
             exit(1)
@@ -46,44 +46,15 @@ def run(path_to_repo: str, path_to_log: str,
     for commit in selected_commits:
         repo.git.checkout(commit.hexsha)
 
-        for i in range(invocation_count):
-            run_mvn_test(path_to_parent_pom, test_classes=test_classes)
-
-        submodules = filter_target_modules(
-            collect_submodules(path_to_parent_pom))
-
-        for submodule in submodules:
-            filenames = collect_surefire_reports(submodule)
-            for filename in filenames:
-                report_xml = JUnitXml.fromfile(filename)
-                report = create_junit_report(report_xml)
-                commit_report = create_commit_report(
-                    commit=commit.hexsha, report=report)
-
-                commit_report_list.append(commit_report)
-
-        # install current revision
-        run_mvn_install(path_to_parent_pom)
-        # get version number
-        version_nr = utils.fetch_maven_project_version(path_to_parent_pom)
-        # build pipeline
-        path_to_pipeline = '/home/lulu/Code/gradooppipeline/pom.xml'
-        utils.mvn_set_dep_version(path_to_pipeline, 'org.gradoop', version_nr)
-        utils.mvn_package(path_to_pipeline)
-        # execute pipeline
-        run_jmh_benchmark('/home/lulu/Code/gradooppipeline/target/gradoop-pipeline-1.0-SNAPSHOT-shaded.jar')
-
-        # read jmh-result file
-        with open('jmh-result.json') as file:
-            data = json.load(file)
-        # create JmhReport object
-        jmh_report = build_jmh_report(data)
-        jmh_report_list.append(jmh_report)
+        generate_test_suite_metrics(commit_report_list, path_to_parent_pom, commit, invocation_count, test_classes)
+        generate_pipeline_metrics(jmh_report_list, path_to_parent_pom, "~/Code/gradoop-jmh-pipeline")
         
     for grouped_list in group_commit_reports_by_test_name(commit_report_list):
         write_grouped_commit_reports(grouped_list, path_to_log)
     
     print(jmh_report_list)
+    with open('jmh_reports.json', 'w') as file:
+        file.write(json.dumps(utils.unpack(jmh_report_list), indent=2))
 
     # checkout HEAD again
     repo.git.checkout(branch)
@@ -92,6 +63,52 @@ def run(path_to_repo: str, path_to_log: str,
 def run_jmh_benchmark(path_to_jar: str) -> None:
     cmd = 'java -jar {jar}'.format(jar=path_to_jar)
     subprocess.run([cmd], shell=True)
+
+
+def generate_test_suite_metrics(commit_report_list: List[CommitReport], path_to_parent_pom: str, commit,
+                                invocation_count: int, test_classes: List[str]) -> None:
+    """Runs the test suite and collects originating JUnit reports"""
+    for i in range(invocation_count):
+        run_mvn_test(path_to_parent_pom, test_classes=test_classes)
+
+    submodules = filter_target_modules(
+        collect_submodules(path_to_parent_pom))
+
+    for submodule in submodules:
+        filenames = collect_surefire_reports(submodule)
+        for filename in filenames:
+            report_xml = JUnitXml.fromfile(filename)
+            report = create_junit_report(report_xml)
+            commit_report = create_commit_report(commit=commit.hexsha, report=report)
+
+            commit_report_list.append(commit_report)
+
+
+def generate_pipeline_metrics(jmh_report_list: List[JmhReport], path_to_parent_pom: str, path_to_pipeline: str) -> None:
+    """Runs the pipeline and collects originating JMH reports
+
+    It is assumed that the executable jar containing the benchmark can be found under project_root/target/.
+    It is further assumed that the resulting jmh-report is named after the default (jmh-result.json).
+    """
+    # install current revision
+    run_mvn_install(path_to_parent_pom)
+    # get version number
+    version_nr = utils.fetch_maven_project_version(path_to_parent_pom)
+    # build pipeline
+    pipeline_pom = os.path.join(path_to_pipeline, 'pom.xml')
+    utils.mvn_set_dep_version(pipeline_pom, 'org.gradoop', version_nr)
+    utils.mvn_package(pipeline_pom)
+    # execute pipeline
+    fname_jar = "gradoop-pipeline-1.0-SNAPSHOT-shaded.jar"
+    path_to_jar = os.path.join(path_to_pipeline, "target", fname_jar)
+    run_jmh_benchmark(path_to_jar)
+
+    # read jmh-result file
+    with open('jmh-result.json') as file:
+        data = json.load(file)
+    # create JmhReport object
+    jmh_report = build_jmh_report(data)
+    jmh_report_list.append(jmh_report)
 
 
 def run_mvn_test(path_to_parent_pom: str,
@@ -176,9 +193,13 @@ def group_commit_reports_by_test_name(
     return grouped_commit_reports
 
 
-def write_grouped_commit_reports(
-        commit_reports: List[CommitReport], path_to_log: str) -> str:
-    """Writes a list of test data dicts to a JSON file in the specified dir and returns the path to the created file."""
+def write_grouped_commit_reports(commit_reports: List[CommitReport], path_to_log: str) -> str:
+    """Writes a list of test data dicts to a JSON file in the specified dir and returns the path to the created file.
+
+    :param commit_reports: List of CommitReport objects
+    :param path_to_log: Path to log dir
+    :return: Name of the file the data was written to
+    """
     filename = commit_reports[0].report.test_name + '.json'
     path = os.path.join(path_to_log, filename)
 
@@ -186,17 +207,3 @@ def write_grouped_commit_reports(
         file.write(json.dumps(utils.unpack(commit_reports), indent=2))
 
     return filename
-
-
-def create_junit_report(report_xml) -> JUnitReport:
-    return JUnitReport(
-        test_name=report_xml.name,
-        test_run=report_xml.tests,
-        time_elapsed=report_xml.time,
-        failures=report_xml.failures,
-        errors=report_xml.errors,
-        skipped=report_xml.skipped)
-
-
-def create_commit_report(commit: str, report: JUnitReport) -> CommitReport:
-    return CommitReport(commit=commit, report=report)

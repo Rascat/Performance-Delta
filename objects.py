@@ -1,5 +1,6 @@
 from typing import NamedTuple, List, Any, Dict
 import json
+
 from utils import unpack
 import const
 
@@ -68,6 +69,7 @@ def build_commit_report(report_data: Dict[str, Any]) -> CommitReport:
     report = JUnitReport(**report_data[const.REPORT])
     return CommitReport(commit=report_data[const.COMMIT], report=report)
 
+
 def build_jmh_report(report_data_list: List[Dict[str, Any]]) -> JmhReport:
     """Builds a JmhReport object from the report data"""
     # get first, and only, element from list
@@ -87,4 +89,18 @@ def build_jmh_report(report_data_list: List[Dict[str, Any]]) -> JmhReport:
         measurement_time=report_data['measurementTime'],
         primary_metric=primary_metric)
     return jmh_report
+
+
+def create_commit_report(commit: str, report: JUnitReport) -> CommitReport:
+    return CommitReport(commit=commit, report=report)
+
+
+def create_junit_report(report_xml) -> JUnitReport:
+    return JUnitReport(
+        test_name=report_xml.name,
+        test_run=report_xml.tests,
+        time_elapsed=report_xml.time,
+        failures=report_xml.failures,
+        errors=report_xml.errors,
+        skipped=report_xml.skipped)
 

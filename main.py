@@ -1,6 +1,5 @@
 import argparse
 import os
-from typing import List
 
 import analyzer
 import runner
@@ -58,8 +57,5 @@ def main():
     analyzer.analyze(log_dir)
 
 
-# argv[1]: path to maven project
-# argv[2]: hash of commit where to start test execution
-# argv[3]: hash of commit where to end test execution
 if __name__ == "__main__":
     main()

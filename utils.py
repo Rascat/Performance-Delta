@@ -29,9 +29,9 @@ def create_dir(path: str) -> str:
         try:
             os.mkdir(path)
         except OSError:
-            print("Creation of the directory %s failed" % path)
+            print("Creation of the directory {dir} failed".format(dir=path))
         else:
-            print("Successfully created the directory %s" % path)
+            print("Successfully created the directory {dir}".format(dir=path))
 
     return path
 
@@ -77,6 +77,7 @@ def fetch_maven_project_version(path_to_pom: str) -> str:
         stdout=subprocess.PIPE,
         encoding='utf-8',
         shell=True)
+    print('Fetched version nr.: {version}'.format(version=completed_process.stdout))
     return completed_process.stdout
 
 
