@@ -70,7 +70,7 @@ def unpack(obj):
 
 def fetch_maven_project_version(path_to_pom: str) -> str:
     print('Fetching version number of {pom}'.format(pom=path_to_pom))
-    cmd = ('mvn -f {pom} org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate '
+    cmd = ('mvn -f {pom} help:evaluate '
            '-Dexpression=project.version -q -DforceStdout').format(pom=path_to_pom)
     try:
         completed_process = subprocess.run(

@@ -8,7 +8,7 @@ import utils
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Run tests over a range of commits.')
+        description='Analyze system performance over a range of commits')
     parser.add_argument('-i', '--interval', type=str, nargs=2, metavar=('start', 'end'),
                         help="specify an interval of commits, starting with the recent one.")
     parser.add_argument('-s', '--selection', type=str, nargs='*',

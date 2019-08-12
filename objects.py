@@ -13,15 +13,15 @@ class JUnitReport(NamedTuple):
     skipped: int
 
 
-class CommitReport(NamedTuple):
+class JUnitCommitReport(NamedTuple):
     """Data structure that links a JUnit report to a specific commit id"""
-    commit: str  # commit revision id
+    commit_id: str  # commit revision id
     report: JUnitReport
 
 
 class CommitStatistics(NamedTuple):
     """Data structure that holds computed statistics of a test suite for a given commit"""
-    hexsha: str
+    commit_id: str
     runtime: float
     speedup: float
     runtime_delta: float
@@ -62,10 +62,15 @@ class JmhReport(NamedTuple):
     primary_metric: PrimaryMetric
 
 
-def build_commit_report(report_data: Dict[str, Any]) -> CommitReport:
+class JmhCommitReport(NamedTuple):
+    commit_id: str
+    jmh_report: JmhReport
+
+
+def build_junit_commit_report(report_data: Dict[str, Any]) -> JUnitCommitReport:
     """Takes a dict with CommitReport fields as keys and returns the CommitReport equivalent"""
     report = JUnitReport(**report_data[const.REPORT])
-    return CommitReport(commit=report_data[const.COMMIT], report=report)
+    return JUnitCommitReport(commit_id=report_data[const.COMMIT], report=report)
 
 
 def build_jmh_report(report_data_list: List[Dict[str, Any]]) -> JmhReport:
@@ -89,9 +94,9 @@ def build_jmh_report(report_data_list: List[Dict[str, Any]]) -> JmhReport:
     return jmh_report
 
 
-def create_commit_report(commit: str, report: JUnitReport) -> CommitReport:
+def create_commit_report(commit: str, report: JUnitReport) -> JUnitCommitReport:
     """Creates a CommitReport obj by associating a commit id with a JUnitReport"""
-    return CommitReport(commit=commit, report=report)
+    return JUnitCommitReport(commit_id=commit, report=report)
 
 
 def create_junit_report(report_xml) -> JUnitReport:

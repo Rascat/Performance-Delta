@@ -8,7 +8,7 @@ from junitparser import JUnitXml  # type: ignore
 
 import const
 import utils
-from objects import CommitReport, JmhReport, build_jmh_report, create_commit_report, create_junit_report
+import objects
 
 
 def run(path_to_repo: str, path_to_log: str, commit_ids: List[str], is_interval: bool,
@@ -37,14 +37,15 @@ def run(path_to_repo: str, path_to_log: str, commit_ids: List[str], is_interval:
 
     utils.create_dir(path_to_log)
 
-    commit_report_list = []  # type: List[CommitReport]
-    jmh_report_list = []  # type: List[JmhReport]
+    commit_report_list = []  # type: List[objects.JUnitCommitReport]
+    jmh_report_list = []  # type: List[objects.JmhCommitReport]
 
     for commit in selected_commits:
-        repo.git.checkout(commit.hexsha)
+        commit_id = commit.hexsha
+        repo.git.checkout(commit_id)
 
-        generate_test_suite_metrics(commit_report_list, path_to_parent_pom, commit, invocation_count, test_classes)
-        generate_pipeline_metrics(jmh_report_list, path_to_parent_pom, '~/Code/gradoop-jmh-pipeline')
+        generate_test_suite_metrics(commit_report_list, path_to_parent_pom, commit_id, invocation_count, test_classes)
+        generate_pipeline_metrics(jmh_report_list, path_to_parent_pom, '~/Code/gradoop-jmh-pipeline', commit_id)
 
     for grouped_list in group_commit_reports_by_test_name(commit_report_list):
         write_grouped_commit_reports(grouped_list, path_to_log)
@@ -62,7 +63,8 @@ def run_jar(path_to_jar: str) -> None:
     subprocess.run([cmd], shell=True)
 
 
-def generate_test_suite_metrics(commit_report_list: List[CommitReport], path_to_parent_pom: str, commit,
+def generate_test_suite_metrics(commit_report_list: List[objects.JUnitCommitReport], path_to_parent_pom: str,
+                                commit_id: str,
                                 invocation_count: int, test_classes: List[str]) -> None:
     """Runs the test suite and collects originating JUnit reports"""
     for i in range(invocation_count):
@@ -75,69 +77,85 @@ def generate_test_suite_metrics(commit_report_list: List[CommitReport], path_to_
         filenames = collect_surefire_reports(submodule)
         for filename in filenames:
             report_xml = JUnitXml.fromfile(filename)
-            report = create_junit_report(report_xml)
-            commit_report = create_commit_report(commit=commit.hexsha, report=report)
+            report = objects.create_junit_report(report_xml)
+            commit_report = objects.create_commit_report(commit=commit_id, report=report)
 
             commit_report_list.append(commit_report)
 
 
-def generate_pipeline_metrics(jmh_report_list: List[JmhReport], path_to_parent_pom: str, path_to_pipeline: str) -> None:
+def generate_pipeline_metrics(jmh_report_list: List[objects.JmhCommitReport], path_to_pom: str,
+                              path_to_pipeline: str, commit_id: str) -> None:
     """Runs the pipeline and collects originating JMH reports.
 
     It is assumed that the executable jar containing the benchmark can be found under pipeline_root/target/.
     It is further assumed that the resulting jmh-report is named after the default (jmh-result.json).
     """
     # install current revision
-    run_mvn_install(path_to_parent_pom)
+    run_mvn_install(path_to_pom)
     # get version number
-    version_nr = utils.fetch_maven_project_version(path_to_parent_pom)
+    version_nr = utils.fetch_maven_project_version(path_to_pom)
     # build pipeline
     pipeline_pom = os.path.join(path_to_pipeline, 'pom.xml')
     utils.mvn_set_dep_version(pipeline_pom, 'org.gradoop', version_nr)
     utils.mvn_package(pipeline_pom)
     # execute pipeline
     jar_name = 'gradoop-pipeline-1.0-SNAPSHOT-shaded.jar'
-    path_to_jar = os.path.join(path_to_pipeline, 'target', jar_name)
+    path_to_jar = os.path.join(path_to_pipeline, const.MVN_TARGET_DIR, jar_name)
     run_jar(path_to_jar)
 
     # read jmh-result file
     with open('jmh-result.json') as file:
         data = json.load(file)
     # create JmhReport object
-    jmh_report = build_jmh_report(data)
-    jmh_report_list.append(jmh_report)
+    jmh_report = objects.build_jmh_report(data)
+    jmh_commit_report = objects.JmhCommitReport(commit_id=commit_id, jmh_report=jmh_report)
+    jmh_report_list.append(jmh_commit_report)
 
 
-def run_mvn_test(path_to_parent_pom: str,
+def run_mvn_test(path_to_pom: str,
                  test_classes: List[str] = None) -> None:
     """Triggers test execution with surefire for the maven project specified in the pom."""
-    print('Running test suite of {pom}'.format(pom=path_to_parent_pom))
+    print('Running test suite of {pom}'.format(pom=path_to_pom))
     if test_classes is None:
-        cmd = 'mvn clean test -f {pom} -q'.format(pom=path_to_parent_pom)
+        cmd = 'mvn clean test -f {pom} -q'.format(pom=path_to_pom)
     else:
         comma_separated_classes = ','.join(test_classes)
         cmd = 'mvn clean test -DfailIfNoTests=false -Dtest={classes} -am -f {pom} -q'.format(
-            pom=path_to_parent_pom, classes=comma_separated_classes)
+            pom=path_to_pom, classes=comma_separated_classes)
 
-    subprocess.run(cmd, shell=True)
+    try:
+        subprocess.run(cmd, shell=True, check=True)
+    except subprocess.CalledProcessError:
+        print('Failed running test suite of project described by {pom}'.format(pom=path_to_pom))
+        exit(1)
 
 
-def run_mvn_install(path_to_parent_pom: str) -> None:
+def run_mvn_install(path_to_pom: str) -> None:
     """Installs the specified project to the local maven repository"""
     print('Installing {pom} to local maven repository.'.format(
-        pom=path_to_parent_pom))
-    cmd = 'mvn install -f {pom} -DskipTests -q'.format(pom=path_to_parent_pom)
+        pom=path_to_pom))
+    cmd = 'mvn install -f {pom} -DskipTests -q'.format(pom=path_to_pom)
 
-    subprocess.run(cmd, shell=True)
+    try:
+        subprocess.run(cmd, shell=True, check=True)
+    except subprocess.CalledProcessError:
+        print('Could not install project described by {pom}'.format(pom=path_to_pom))
+        exit(1)
 
 
 def collect_submodules(path_to_pom: str) -> List[str]:
     """Returns a list of paths to every mvn submodule of the specified parent module."""
+    print('Collecting submodules of {pom}'.format(pom=path_to_pom))
     cmd = 'mvn -f {pom} -q --also-make exec:exec -Dexec.executable="pwd"'.format(
         pom=path_to_pom)
-    completed_process = subprocess.run(
-        cmd, stdout=subprocess.PIPE, encoding='utf-8', shell=True)
-    return completed_process.stdout.splitlines()
+
+    try:
+        completed_process = subprocess.run(
+            cmd, stdout=subprocess.PIPE, encoding='utf-8', shell=True, check=True)
+        return completed_process.stdout.splitlines()
+    except subprocess.CalledProcessError:
+        print('Error while trying to collect submodules of expected parent {pom}'.format(pom=path_to_pom))
+        exit(1)
 
 
 def filter_target_modules(submodules: List[str]) -> List[str]:
@@ -168,13 +186,13 @@ def collect_surefire_reports(project_root: str) -> List[str]:
 
 
 def group_commit_reports_by_test_name(
-        commit_reports: List[CommitReport]) -> List[List[CommitReport]]:
+        commit_reports: List[objects.JUnitCommitReport]) -> List[List[objects.JUnitCommitReport]]:
     """
     Groups a list of CommitReport objects like [{'test_name': 'X'},{'test_name': 'Y'}, {'test_name': 'X'}]
     to a list of lists like [[{'test_name': 'X'}, {'test_name': 'X'}], [{'test_name': 'Y'}]]
     """
-    grouped_commit_reports = []  # type: List[List[CommitReport]]
-    test_result_map = {}  # type: Dict[str, List[CommitReport]]
+    grouped_commit_reports = []  # type: List[List[objects.JUnitCommitReport]]
+    test_result_map = {}  # type: Dict[str, List[objects.JUnitCommitReport]]
 
     for commit_report in commit_reports:
         test_name = commit_report.report.test_name
@@ -190,7 +208,7 @@ def group_commit_reports_by_test_name(
     return grouped_commit_reports
 
 
-def write_grouped_commit_reports(commit_reports: List[CommitReport], path_to_log: str) -> str:
+def write_grouped_commit_reports(commit_reports: List[objects.JUnitCommitReport], path_to_log: str) -> str:
     """Writes a list of test data dicts to a JSON file in the specified dir and returns the path to the created file.
 
     :param commit_reports: List of CommitReport objects

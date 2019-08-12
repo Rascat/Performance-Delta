@@ -6,8 +6,8 @@ from typing import Dict, List
 import const
 import logger
 import utils
-from objects import (BenchmarkStatistics, CommitReport, CommitStatistics,
-                     build_commit_report)
+from objects import (BenchmarkStatistics, JUnitCommitReport, CommitStatistics,
+                     build_junit_commit_report)
 
 DELTA_THRESHOLD = 2  # seconds
 SPEEDUP_THRESHOLD = 2.0
@@ -25,7 +25,7 @@ def analyze(path_to_log_dir: str) -> None:
         with open(filename) as file:
             report_data_list = json.load(file)
             commit_report_list = list(
-                map(build_commit_report, report_data_list))
+                map(build_junit_commit_report, report_data_list))
             test_statistics = analyze_report_list(commit_report_list)
             statistics_list.append(test_statistics)
             logger.log_statistics(test_statistics, dest_dir=path_to_log_dir)
@@ -44,7 +44,7 @@ def find_salient_commits(
 
         for commit_statistics in commit_statistics_list:
             if is_salient(commit_statistics):
-                rev_id = commit_statistics.hexsha
+                rev_id = commit_statistics.commit_id
                 data = utils.unpack(commit_statistics)
                 data[const.TEST_NAME] = test_name
                 data.pop(const.HEXSHA, None)
@@ -69,7 +69,7 @@ def get_log_file_names(path_to_log_dir: str) -> List[str]:
     return filenames
 
 
-def analyze_report_list(reports: List[CommitReport]) -> BenchmarkStatistics:
+def analyze_report_list(reports: List[JUnitCommitReport]) -> BenchmarkStatistics:
     """Computes benchmark statistics from a list of test data.
 
     Returns a dict containing the statistics belonging to a test suite over a list of commits.
@@ -84,7 +84,7 @@ def analyze_report_list(reports: List[CommitReport]) -> BenchmarkStatistics:
     # compare perf of commit X with performance of following commit X+1 (an
     # earlier version)
     for i in range(list_length - 1):
-        current_commit = reports[i].commit
+        current_commit = reports[i].commit_id
         current_runtime = reports[i].report.time_elapsed
         next_runtime = reports[i + 1].report.time_elapsed
 
@@ -111,7 +111,7 @@ def analyze_report_list(reports: List[CommitReport]) -> BenchmarkStatistics:
     return benchmark_statistics
 
 
-def compute_std_deviation(reports: List[CommitReport]) -> float:
+def compute_std_deviation(reports: List[JUnitCommitReport]) -> float:
     """Returns the std deviation over all test execution times in list of test data objects.
 
     List must contain at least two data points.
