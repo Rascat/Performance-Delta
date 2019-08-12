@@ -1,5 +1,4 @@
 import os
-import sys
 from os import path
 from typing import Any, Dict, List
 
@@ -8,12 +7,6 @@ from tabulate import tabulate
 import const
 import utils
 from objects import BenchmarkStatistics
-
-
-def warn(current_commit: str, next_commit: str,
-         delta: float, threshold: float):
-    print("WARNING: {} introduced performance change. Delta: {}. Threshold: {}.".format(
-        current_commit, delta, threshold), file=sys.stderr)
 
 
 def log_statistics(statistics: BenchmarkStatistics, dest_dir: str = None):
@@ -58,12 +51,12 @@ def format_statistics(statistics: BenchmarkStatistics) -> str:
 
 
 def format_salient_commits(salient_commits: Dict[str, List[Any]]) -> str:
-    header = "The following commits introduced changes that extended the runtime of some test classes on branch {branch}.\n\n".format(
-        branch="master")
-    body = ""
+    header = ('The following commits introduced changes that extended '
+              'the runtime of some test classes on branch {branch}.\n\n').format(branch='master')
+    body = ''
     for key in salient_commits.keys():
-        body += "{hexsha}:\n\n".format(hexsha=key)
-        body += tabulate(salient_commits[key], headers="keys")
-        body += "\n\n"
+        body += '{hexsha}:\n\n'.format(hexsha=key)
+        body += tabulate(salient_commits[key], headers='keys')
+        body += '\n\n'
 
     return header + body

@@ -28,10 +28,10 @@ def create_dir(path: str) -> str:
         try:
             os.mkdir(path)
         except OSError:
-            print("Creation of the directory {dir} failed".format(dir=path))
+            print('Creation of the directory {dir} failed'.format(dir=path))
             exit(1)
         else:
-            print("Successfully created the directory {dir}".format(dir=path))
+            print('Successfully created the directory {dir}'.format(dir=path))
 
     return path
 
@@ -70,7 +70,7 @@ def unpack(obj):
 
 def fetch_maven_project_version(path_to_pom: str) -> str:
     print('Fetching version number of {pom}'.format(pom=path_to_pom))
-    cmd = ('mvn -f {pom} org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate'
+    cmd = ('mvn -f {pom} org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate '
            '-Dexpression=project.version -q -DforceStdout').format(pom=path_to_pom)
     try:
         completed_process = subprocess.run(
@@ -98,7 +98,7 @@ def mvn_set_dep_version(path_to_pom: str, group_id: str, version_nr: str) -> Non
 
 
 def mvn_package(path_to_pom: str) -> None:
-    print("Packaging {pom}.".format(pom=path_to_pom))
+    print('Packaging {pom}.'.format(pom=path_to_pom))
     cmd = 'mvn -f {pom} package -q'.format(pom=path_to_pom)
     try:
         subprocess.run(cmd, shell=True, check=True)

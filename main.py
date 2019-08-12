@@ -8,18 +8,19 @@ import utils
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run tests over a range of commits.")
+        description='Run tests over a range of commits.')
     parser.add_argument('-i', '--interval', type=str, nargs=2, metavar=('start', 'end'),
                         help="specify an interval of commits, starting with the recent one.")
     parser.add_argument('-s', '--selection', type=str, nargs='*',
                         metavar='commit-id', help='a number of commits ids in decreasing recency.')
     parser.add_argument('-p', '--path', type=str,
-                        help="path to maven project, defaults to the current working directory.")
+                        help='path to maven project, defaults to the current working directory.')
     parser.add_argument('-d', '--destination', type=str,
-                        help="path to directory where resulting artifacts will be saved. Defaults to parent directory of project root.")
+                        help='path to directory where resulting artifacts will be saved. Defaults to parent directory '
+                             'of project root.')
     parser.add_argument('-c', '--test-classes', type=str,
                         nargs='*', help='list of test classes to be run.')
-    parser.add_argument('-b', '--branch', type=str, default="master",
+    parser.add_argument('-b', '--branch', type=str, default='master',
                         help='name of the branch to test (defaults to "master").')
     parser.add_argument('--invocation-count', type=int, metavar='count',
                         help='the number of times each test should be invoked. Logging happens after the last run.',

@@ -11,8 +11,8 @@ import utils
 from objects import CommitReport, JmhReport, build_jmh_report, create_commit_report, create_junit_report
 
 
-def run(path_to_repo: str, path_to_log: str,
-        commit_ids: List[str], is_interval: bool, branch: str, invocation_count: int, test_classes: List[str] = None):
+def run(path_to_repo: str, path_to_log: str, commit_ids: List[str], is_interval: bool,
+        branch: str, invocation_count: int, test_classes: List[str] = None):
     """Runs a maven repositories test suite over a range of commits and logs commit specific execution times."""
     repo = Repo(path_to_repo)
     path_to_parent_pom = os.path.join(path_to_repo, const.POM)
@@ -25,7 +25,7 @@ def run(path_to_repo: str, path_to_log: str,
         index_end = commit_list.index(repo.commit(commit_ids[1]))
 
         if index_start >= index_end:
-            print("Error, wrong commit order. First commit must be more recent than the second one.")
+            print('Error, wrong commit order. First commit must be more recent than the second one.')
             exit(1)
 
         # get last n commits, counting from HEAD
@@ -44,8 +44,8 @@ def run(path_to_repo: str, path_to_log: str,
         repo.git.checkout(commit.hexsha)
 
         generate_test_suite_metrics(commit_report_list, path_to_parent_pom, commit, invocation_count, test_classes)
-        generate_pipeline_metrics(jmh_report_list, path_to_parent_pom, "~/Code/gradoop-jmh-pipeline")
-        
+        generate_pipeline_metrics(jmh_report_list, path_to_parent_pom, '~/Code/gradoop-jmh-pipeline')
+
     for grouped_list in group_commit_reports_by_test_name(commit_report_list):
         write_grouped_commit_reports(grouped_list, path_to_log)
 
@@ -96,8 +96,8 @@ def generate_pipeline_metrics(jmh_report_list: List[JmhReport], path_to_parent_p
     utils.mvn_set_dep_version(pipeline_pom, 'org.gradoop', version_nr)
     utils.mvn_package(pipeline_pom)
     # execute pipeline
-    jar_name = "gradoop-pipeline-1.0-SNAPSHOT-shaded.jar"
-    path_to_jar = os.path.join(path_to_pipeline, "target", jar_name)
+    jar_name = 'gradoop-pipeline-1.0-SNAPSHOT-shaded.jar'
+    path_to_jar = os.path.join(path_to_pipeline, 'target', jar_name)
     run_jar(path_to_jar)
 
     # read jmh-result file
@@ -113,31 +113,30 @@ def run_mvn_test(path_to_parent_pom: str,
     """Triggers test execution with surefire for the maven project specified in the pom."""
     print('Running test suite of {pom}'.format(pom=path_to_parent_pom))
     if test_classes is None:
-        cmd = "mvn clean test -f {pom} -q".format(pom=path_to_parent_pom)
+        cmd = 'mvn clean test -f {pom} -q'.format(pom=path_to_parent_pom)
     else:
-        comma_separated_classes = ",".join(test_classes)
-        cmd = "mvn clean test -DfailIfNoTests=false -Dtest={classes} -am -f {pom} -q".format(
+        comma_separated_classes = ','.join(test_classes)
+        cmd = 'mvn clean test -DfailIfNoTests=false -Dtest={classes} -am -f {pom} -q'.format(
             pom=path_to_parent_pom, classes=comma_separated_classes)
 
-    subprocess.run([cmd], shell=True)
+    subprocess.run(cmd, shell=True)
 
 
 def run_mvn_install(path_to_parent_pom: str) -> None:
     """Installs the specified project to the local maven repository"""
-    print(
-        'Installing {pom} to local maven repository.'.format(
-            pom=path_to_parent_pom))
+    print('Installing {pom} to local maven repository.'.format(
+        pom=path_to_parent_pom))
     cmd = 'mvn install -f {pom} -DskipTests -q'.format(pom=path_to_parent_pom)
 
-    subprocess.run([cmd], shell=True)
+    subprocess.run(cmd, shell=True)
 
 
 def collect_submodules(path_to_pom: str) -> List[str]:
     """Returns a list of paths to every mvn submodule of the specified parent module."""
-    cmd = "mvn -f {pom} -q --also-make exec:exec -Dexec.executable=\"pwd\"".format(
+    cmd = 'mvn -f {pom} -q --also-make exec:exec -Dexec.executable="pwd"'.format(
         pom=path_to_pom)
     completed_process = subprocess.run(
-        [cmd], stdout=subprocess.PIPE, encoding='utf-8', shell=True)
+        cmd, stdout=subprocess.PIPE, encoding='utf-8', shell=True)
     return completed_process.stdout.splitlines()
 
 
@@ -156,7 +155,8 @@ def has_target_dir(path: str) -> bool:
 def collect_surefire_reports(project_root: str) -> List[str]:
     """Returns a list of filenames for files containing test execution data.
 
-    Assumes that reports are located either under module-root/target/surefire-reports or module_root/target/surefire-reports/junitreports
+    Assumes that reports are located either under module-root/target/surefire-reports or
+    module_root/target/surefire-reports/junitreports
     """
     path_to_reports = os.path.join(
         project_root, const.MVN_TARGET_DIR, const.SUREFIRE_REPORTS_DIR, 'junitreports')

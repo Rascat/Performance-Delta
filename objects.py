@@ -90,10 +90,12 @@ def build_jmh_report(report_data_list: List[Dict[str, Any]]) -> JmhReport:
 
 
 def create_commit_report(commit: str, report: JUnitReport) -> CommitReport:
+    """Creates a CommitReport obj by associating a commit id with a JUnitReport"""
     return CommitReport(commit=commit, report=report)
 
 
 def create_junit_report(report_xml) -> JUnitReport:
+    """Creates a JUnitReport obj"""
     return JUnitReport(
         test_name=report_xml.name,
         test_run=report_xml.tests,

@@ -1,15 +1,13 @@
 import argparse
-import glob
 import json
-import os
 import statistics
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import const
 import logger
 import utils
 from objects import (BenchmarkStatistics, CommitReport, CommitStatistics,
-                     JUnitReport, build_commit_report)
+                     build_commit_report)
 
 DELTA_THRESHOLD = 2  # seconds
 SPEEDUP_THRESHOLD = 2.0
@@ -20,7 +18,7 @@ def analyze(path_to_log_dir: str) -> None:
     filenames = get_log_file_names(path_to_log_dir)
 
     if len(filenames) is 0:
-        print("Error: No log files found in %s" % path_to_log_dir)
+        print('Error: No log files found in {log}'.format(log=path_to_log_dir))
 
     statistics_list = []
     for filename in filenames:
@@ -28,9 +26,9 @@ def analyze(path_to_log_dir: str) -> None:
             report_data_list = json.load(file)
             commit_report_list = list(
                 map(build_commit_report, report_data_list))
-            statistics = analyze_report_list(commit_report_list)
-            statistics_list.append(statistics)
-            logger.log_statistics(statistics, dest_dir=path_to_log_dir)
+            test_statistics = analyze_report_list(commit_report_list)
+            statistics_list.append(test_statistics)
+            logger.log_statistics(test_statistics, dest_dir=path_to_log_dir)
 
     salient_commits = find_salient_commits(statistics_list)
     logger.log_salient_commits(salient_commits, dest_dir=path_to_log_dir)
@@ -38,7 +36,7 @@ def analyze(path_to_log_dir: str) -> None:
 
 def find_salient_commits(
         benchmark_statistics_list: List[BenchmarkStatistics]) -> Dict[str, List[str]]:
-    """From a list of commit statistics, return a dict where a revision id points to list of statistics that are salient."""
+    """From a list of commit statistics, return a dict where a revision id points to list of statistics that are salient. """
     result = {}  # type: Dict[str, List[str]]
     for benchmark_statistics in benchmark_statistics_list:
         test_name = benchmark_statistics.test_name
@@ -60,7 +58,7 @@ def find_salient_commits(
 
 
 def is_salient(commit_statistics: CommitStatistics) -> bool:
-    """Retruns a boolean indication whether a commit statistics object is salient or not."""
+    """Returns a boolean indication whether a commit statistics object is salient or not."""
     return (commit_statistics.runtime_delta > DELTA_THRESHOLD
             or commit_statistics.speedup > SPEEDUP_THRESHOLD)
 
@@ -92,7 +90,7 @@ def analyze_report_list(reports: List[CommitReport]) -> BenchmarkStatistics:
 
         runtime_delta = current_runtime - next_runtime
         speedup = current_runtime / \
-            next_runtime if int(next_runtime) is not 0 else 0
+                  next_runtime if int(next_runtime) is not 0 else 0
 
         commit_statistics = CommitStatistics(
             hexsha=current_commit,
