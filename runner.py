@@ -1,8 +1,6 @@
-import glob
 import json
 import os.path
 import subprocess
-from pathlib import Path
 from typing import Dict, List
 
 from git import Repo  # type: ignore
@@ -10,7 +8,7 @@ from junitparser import JUnitXml  # type: ignore
 
 import const
 import utils
-from objects import CommitReport, JUnitReport, JmhReport, build_jmh_report, create_commit_report, create_junit_report
+from objects import CommitReport, JmhReport, build_jmh_report, create_commit_report, create_junit_report
 
 
 def run(path_to_repo: str, path_to_log: str,
@@ -27,8 +25,7 @@ def run(path_to_repo: str, path_to_log: str,
         index_end = commit_list.index(repo.commit(commit_ids[1]))
 
         if index_start >= index_end:
-            print(
-                "Error, wrong commit order. First commit must be younger than the second one.")
+            print("Error, wrong commit order. First commit must be more recent than the second one.")
             exit(1)
 
         # get last n commits, counting from HEAD
@@ -51,16 +48,16 @@ def run(path_to_repo: str, path_to_log: str,
         
     for grouped_list in group_commit_reports_by_test_name(commit_report_list):
         write_grouped_commit_reports(grouped_list, path_to_log)
-    
-    print(jmh_report_list)
+
     with open('jmh_reports.json', 'w') as file:
         file.write(json.dumps(utils.unpack(jmh_report_list), indent=2))
 
-    # checkout HEAD again
+    # revert repo to original state
     repo.git.checkout(branch)
 
 
-def run_jmh_benchmark(path_to_jar: str) -> None:
+def run_jar(path_to_jar: str) -> None:
+    """Runs an executable jar"""
     cmd = 'java -jar {jar}'.format(jar=path_to_jar)
     subprocess.run([cmd], shell=True)
 
@@ -85,9 +82,9 @@ def generate_test_suite_metrics(commit_report_list: List[CommitReport], path_to_
 
 
 def generate_pipeline_metrics(jmh_report_list: List[JmhReport], path_to_parent_pom: str, path_to_pipeline: str) -> None:
-    """Runs the pipeline and collects originating JMH reports
+    """Runs the pipeline and collects originating JMH reports.
 
-    It is assumed that the executable jar containing the benchmark can be found under project_root/target/.
+    It is assumed that the executable jar containing the benchmark can be found under pipeline_root/target/.
     It is further assumed that the resulting jmh-report is named after the default (jmh-result.json).
     """
     # install current revision
@@ -99,9 +96,9 @@ def generate_pipeline_metrics(jmh_report_list: List[JmhReport], path_to_parent_p
     utils.mvn_set_dep_version(pipeline_pom, 'org.gradoop', version_nr)
     utils.mvn_package(pipeline_pom)
     # execute pipeline
-    fname_jar = "gradoop-pipeline-1.0-SNAPSHOT-shaded.jar"
-    path_to_jar = os.path.join(path_to_pipeline, "target", fname_jar)
-    run_jmh_benchmark(path_to_jar)
+    jar_name = "gradoop-pipeline-1.0-SNAPSHOT-shaded.jar"
+    path_to_jar = os.path.join(path_to_pipeline, "target", jar_name)
+    run_jar(path_to_jar)
 
     # read jmh-result file
     with open('jmh-result.json') as file:

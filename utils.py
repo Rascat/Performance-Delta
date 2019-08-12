@@ -24,12 +24,12 @@ def get_filenames_by_type(path: str, filetype: str) -> List[str]:
 
 def create_dir(path: str) -> str:
     """Creates the specified directory if it is not already present."""
-
     if not os.path.isdir(path):
         try:
             os.mkdir(path)
         except OSError:
             print("Creation of the directory {dir} failed".format(dir=path))
+            exit(1)
         else:
             print("Successfully created the directory {dir}".format(dir=path))
 
@@ -70,30 +70,38 @@ def unpack(obj):
 
 def fetch_maven_project_version(path_to_pom: str) -> str:
     print('Fetching version number of {pom}'.format(pom=path_to_pom))
-    cmd = "mvn -f {pom} org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate -Dexpression=project.version -q -DforceStdout".format(
-        pom=path_to_pom)
-    completed_process = subprocess.run(
-        [cmd],
-        stdout=subprocess.PIPE,
-        encoding='utf-8',
-        shell=True)
-    print('Fetched version nr.: {version}'.format(version=completed_process.stdout))
-    return completed_process.stdout
+    cmd = ('mvn -f {pom} org.apache.maven.plugins:maven-help-plugin:3.1.0:evaluate'
+           '-Dexpression=project.version -q -DforceStdout').format(pom=path_to_pom)
+    try:
+        completed_process = subprocess.run(
+            cmd, stdout=subprocess.PIPE, encoding='utf-8', shell=True, check=True)
+
+        print('Fetched version nr.: {version}'.format(version=completed_process.stdout))
+        return completed_process.stdout
+    except subprocess.CalledProcessError:
+        print('Failed version nr of project described by {pom}'.format(pom=path_to_pom))
+        exit(1)
 
 
-def mvn_set_dep_version(path_to_pom: str, group_id: str,
-                        version_nr: str) -> None:
-    print(
-        "Setting version of dependency  {group_id}.* to {version}".format(
-            group_id=group_id,
-            version=version_nr))
-    cmd = 'mvn -f {pom} versions:use-dep-version -Dincludes={group_id} -DdepVersion={version}'.format(
+def mvn_set_dep_version(path_to_pom: str, group_id: str, version_nr: str) -> None:
+    """Sets the required version of dependencies which belong to the specified group id"""
+    print('Setting version of dependency  {group_id}.* to {version}'.format(
+            group_id=group_id, version=version_nr))
+    cmd = 'mvn -f {pom} versions:use-dep-version -Dincludes={group_id} -DdepVersion={version} -q'.format(
         pom=path_to_pom, group_id=group_id, version=version_nr)
-
-    subprocess.run([cmd], shell=True)
+    try:
+        subprocess.run(cmd, shell=True, check=True)
+    except subprocess.CalledProcessError:
+        print('Setting the version of group {group} to {version} failed.'.format(
+            group=group_id, version=version_nr))
+        exit(1)
 
 
 def mvn_package(path_to_pom: str) -> None:
     print("Packaging {pom}.".format(pom=path_to_pom))
     cmd = 'mvn -f {pom} package -q'.format(pom=path_to_pom)
-    subprocess.run([cmd], shell=True)
+    try:
+        subprocess.run(cmd, shell=True, check=True)
+    except subprocess.CalledProcessError:
+        print('Packing of project specified by {pom} failed.'.format(pom=path_to_pom))
+        exit(1)

@@ -22,7 +22,8 @@ def main():
     parser.add_argument('-b', '--branch', type=str, default="master",
                         help='name of the branch to test (defaults to "master").')
     parser.add_argument('--invocation-count', type=int, metavar='count',
-                        help='the number of times each test should be invoked. Logging happens after the last run.', default=1)
+                        help='the number of times each test should be invoked. Logging happens after the last run.',
+                        default=1)
 
     args = parser.parse_args()
 
