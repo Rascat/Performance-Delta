@@ -56,7 +56,7 @@ def main():
 
     runner.run(path_to_repo=project_root, path_to_log=log_dir, commit_ids=commit_ids,
                is_interval=is_interval, test_classes=test_classes, branch=branch, invocation_count=invocation_count)
-    analyzer.analyze(log_dir)
+    analyzer.analyze_junit_reports(log_dir)
 
 
 if __name__ == "__main__":

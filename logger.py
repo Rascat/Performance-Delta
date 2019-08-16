@@ -6,16 +6,16 @@ from tabulate import tabulate
 
 import const
 import utils
-from objects import BenchmarkStatistics
+from objects import BenchmarkStatistics, JmhStatistics
 
 
-def log_statistics(statistics: BenchmarkStatistics, dest_dir: str = None):
+def log_benchmark_statistics(statistics: BenchmarkStatistics, dest_dir: str = None) -> None:
     """Logs data contained by dict to the specified directory.
 
     The filename of a given statistics dict is equal to the test name.
     If no path to a destination directory is provided, the data is printed to std out.
     """
-    statistics_str = format_statistics(statistics)
+    statistics_str = format_benchmark_statistics(statistics)
     if dest_dir is None:
         print(statistics_str)
     else:
@@ -24,6 +24,11 @@ def log_statistics(statistics: BenchmarkStatistics, dest_dir: str = None):
         destination = path.join(stat_dir, statistics.test_name)
         with open(destination, "w") as file:
             file.write(statistics_str)
+
+
+def log_jmh_statistics(statistics: List[JmhStatistics], dest_dir: str = None) -> None:
+    if dest_dir is None:
+        print(utils.unpack(statistics))
 
 
 def log_salient_commits(
@@ -38,14 +43,14 @@ def log_salient_commits(
             file.write(salient_commits_str)
 
 
-def format_statistics(statistics: BenchmarkStatistics) -> str:
+def format_benchmark_statistics(statistics: BenchmarkStatistics) -> str:
     """Formats a given test statistics dict and returns a string representation"""
     header = ("{s.test_name}\n\n"
               "Std deviation: {s.std_dev}\n"
               "Delta threshold: {s.delta_threshold}\n"
               "Speedup threshold: {s.speedup_threshold}\n\n").format(s=statistics)
 
-    records = tabulate(utils.unpack(statistics.commits), headers="keys")
+    records = tabulate(utils.unpack(statistics.junit_statistics), headers="keys")
 
     return header + records
 

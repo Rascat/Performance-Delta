@@ -19,7 +19,7 @@ class JUnitCommitReport(NamedTuple):
     report: JUnitReport
 
 
-class CommitStatistics(NamedTuple):
+class JUnitStatistics(NamedTuple):
     """Data structure that holds computed statistics of a test suite for a given commit"""
     commit_id: str
     runtime: float
@@ -27,13 +27,20 @@ class CommitStatistics(NamedTuple):
     runtime_delta: float
 
 
+class JmhStatistics(NamedTuple):
+    commit_id: str
+    mode: str
+    score: float
+    delta: float
+
+
 class BenchmarkStatistics(NamedTuple):
-    """Data structure that links benchmark specifics to a list of CommitStatistics"""
+    """Data structure that links benchmark specifics to a list of JUnitStatistics"""
     test_name: str
     std_dev: float
     delta_threshold: float
     speedup_threshold: float
-    commits: List[CommitStatistics]
+    junit_statistics: List[JUnitStatistics]
 
 
 class PrimaryMetric(NamedTuple):
@@ -53,13 +60,13 @@ class JmhReport(NamedTuple):
     threads: int
     forks: int
     jvm: str
-    jvm_args: List[str]
-    jdk_version: str
-    warmup_iterations: int
-    warmup_time: str
-    measurement_iterations: int
-    measurement_time: str
-    primary_metric: PrimaryMetric
+    jvmArgs: List[str]
+    jdkVersion: str
+    warmupIterations: int
+    warmupTime: str
+    measurementIterations: int
+    measurementTime: str
+    primaryMetric: PrimaryMetric
 
 
 class JmhCommitReport(NamedTuple):
@@ -73,10 +80,8 @@ def build_junit_commit_report(report_data: Dict[str, Any]) -> JUnitCommitReport:
     return JUnitCommitReport(commit_id=report_data[const.COMMIT], report=report)
 
 
-def build_jmh_report(report_data_list: List[Dict[str, Any]]) -> JmhReport:
+def build_jmh_report(report_data: Dict[str, Any]) -> JmhReport:
     """Builds a JmhReport object from the report data"""
-    # get first, and only, element from list
-    report_data = report_data_list[0]
     primary_metric = PrimaryMetric(**report_data['primaryMetric'])
     jmh_report = JmhReport(
         benchmark=report_data['benchmark'],
@@ -84,17 +89,22 @@ def build_jmh_report(report_data_list: List[Dict[str, Any]]) -> JmhReport:
         threads=report_data['threads'],
         forks=report_data['forks'],
         jvm=report_data['jvm'],
-        jvm_args=report_data['jvmArgs'],
-        jdk_version=report_data['jdkVersion'],
-        warmup_iterations=report_data['warmupIterations'],
-        warmup_time=report_data['warmupTime'],
-        measurement_iterations=report_data['measurementIterations'],
-        measurement_time=report_data['measurementTime'],
-        primary_metric=primary_metric)
+        jvmArgs=report_data['jvmArgs'],
+        jdkVersion=report_data['jdkVersion'],
+        warmupIterations=report_data['warmupIterations'],
+        warmupTime=report_data['warmupTime'],
+        measurementIterations=report_data['measurementIterations'],
+        measurementTime=report_data['measurementTime'],
+        primaryMetric=primary_metric)
     return jmh_report
 
 
-def create_commit_report(commit: str, report: JUnitReport) -> JUnitCommitReport:
+def build_jmh_commit_report(commit_report_data: Dict[str, Any]) -> JmhCommitReport:
+    return JmhCommitReport(commit_id=commit_report_data['commit_id'],
+                           jmh_report=build_jmh_report(commit_report_data['jmh_report']))
+
+
+def create_junit_commit_report(commit: str, report: JUnitReport) -> JUnitCommitReport:
     """Creates a CommitReport obj by associating a commit id with a JUnitReport"""
     return JUnitCommitReport(commit_id=commit, report=report)
 
@@ -108,4 +118,3 @@ def create_junit_report(report_xml) -> JUnitReport:
         failures=report_xml.failures,
         errors=report_xml.errors,
         skipped=report_xml.skipped)
-

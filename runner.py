@@ -67,6 +67,9 @@ def generate_test_suite_metrics(commit_report_list: List[objects.JUnitCommitRepo
                                 commit_id: str,
                                 invocation_count: int, test_classes: List[str]) -> None:
     """Runs the test suite and collects originating JUnit reports"""
+    if invocation_count is 0:
+        return
+
     for i in range(invocation_count):
         run_mvn_test(path_to_parent_pom, test_classes=test_classes)
 
@@ -78,7 +81,7 @@ def generate_test_suite_metrics(commit_report_list: List[objects.JUnitCommitRepo
         for filename in filenames:
             report_xml = JUnitXml.fromfile(filename)
             report = objects.create_junit_report(report_xml)
-            commit_report = objects.create_commit_report(commit=commit_id, report=report)
+            commit_report = objects.create_junit_commit_report(commit=commit_id, report=report)
 
             commit_report_list.append(commit_report)
 
@@ -107,7 +110,7 @@ def generate_pipeline_metrics(jmh_report_list: List[objects.JmhCommitReport], pa
     with open('jmh-result.json') as file:
         data = json.load(file)
     # create JmhReport object
-    jmh_report = objects.build_jmh_report(data)
+    jmh_report = objects.build_jmh_report(data[0])
     jmh_commit_report = objects.JmhCommitReport(commit_id=commit_id, jmh_report=jmh_report)
     jmh_report_list.append(jmh_commit_report)
 
