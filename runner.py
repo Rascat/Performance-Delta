@@ -139,6 +139,9 @@ def run_mvn_install(path_to_pom: str) -> None:
         pom=path_to_pom))
     cmd = 'mvn install -f {pom} -DskipTests -q'.format(pom=path_to_pom)
 
+    # set findbugs version to 3.0.5 because maven 3.6.1 and findbugs<3.0.5 dont get along
+    cmd += ' -Dplugin.maven-findbugs.version=3.0.5'
+
     try:
         subprocess.run(cmd, shell=True, check=True)
     except subprocess.CalledProcessError:
