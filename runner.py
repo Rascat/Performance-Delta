@@ -59,13 +59,18 @@ def run(path_to_repo: str, path_to_log: str, commit_ids: List[str], is_interval:
 
 def run_jar(path_to_jar: str) -> None:
     """Runs an executable jar"""
+    print('Running executable jar {jar}'.format(jar=path_to_jar))
     cmd = 'java -jar {jar}'.format(jar=path_to_jar)
-    subprocess.run([cmd], shell=True)
+
+    try:
+        subprocess.run(cmd, shell=True, check=True)
+    except subprocess.CalledProcessError:
+        print('Failed running executable jar {jar}'.format(jar=path_to_jar))
+        exit(1)
 
 
 def generate_test_suite_metrics(commit_report_list: List[objects.JUnitCommitReport], path_to_parent_pom: str,
-                                commit_id: str,
-                                invocation_count: int, test_classes: List[str]) -> None:
+                                commit_id: str, invocation_count: int, test_classes: List[str]) -> None:
     """Runs the test suite and collects originating JUnit reports"""
     if invocation_count is 0:
         return
