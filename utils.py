@@ -1,7 +1,9 @@
 import glob
 import os.path
-from typing import List
+from typing import List, Dict, Any
 import subprocess
+import csv
+from statistics import mean
 
 import const
 
@@ -105,3 +107,27 @@ def mvn_package(path_to_pom: str) -> None:
     except subprocess.CalledProcessError:
         print('Packing of project specified by {pom} failed.'.format(pom=path_to_pom))
         exit(1)
+
+
+def parse_benchmark_results(path_to_csv: str) -> List[Dict[str, Any]]:
+    with open(path_to_csv) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter='|')
+        next(csv_reader, None)  # skip the header
+
+        runtime_per_parallelism = {}
+        for line in csv_reader:
+            parallelism = int(line[0])
+            runtime = int(line[10])
+            if parallelism not in runtime_per_parallelism.keys():
+                runtime_per_parallelism[parallelism] = [runtime]
+            else:
+                runtime_per_parallelism[parallelism].append(runtime)
+
+        result = []
+        for parallelism in runtime_per_parallelism.keys():
+            parallelism_statistics = {'parallelism': parallelism,
+                                      'runtimes': runtime_per_parallelism[parallelism],
+                                      'mean_runtime': round(mean(runtime_per_parallelism[parallelism]))}
+            result.append(parallelism_statistics)
+
+        return result
