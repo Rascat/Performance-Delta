@@ -6,7 +6,7 @@ from typing import Dict, List
 import const
 import logger
 import utils
-import objects
+from model import objects
 
 DELTA_THRESHOLD = 2  # seconds
 SPEEDUP_THRESHOLD = 2.0

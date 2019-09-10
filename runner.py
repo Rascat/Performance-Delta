@@ -7,8 +7,11 @@ from git import Repo  # type: ignore
 from junitparser import JUnitXml  # type: ignore
 
 import const
+import run.maven
 import utils
-import objects
+from model import objects
+from run.java import run_jar
+from run.maven import run_mvn_test, run_mvn_install
 
 
 def run(path_to_repo: str, path_to_log: str, commit_ids: List[str], is_interval: bool,
@@ -57,18 +60,6 @@ def run(path_to_repo: str, path_to_log: str, commit_ids: List[str], is_interval:
     repo.git.checkout(branch)
 
 
-def run_jar(path_to_jar: str) -> None:
-    """Runs an executable jar"""
-    print('Running executable jar {jar}'.format(jar=path_to_jar))
-    cmd = 'java -jar {jar}'.format(jar=path_to_jar)
-
-    try:
-        subprocess.run(cmd, shell=True, check=True)
-    except subprocess.CalledProcessError:
-        print('Failed running executable jar {jar}'.format(jar=path_to_jar))
-        exit(1)
-
-
 def generate_test_suite_metrics(commit_report_list: List[objects.JUnitCommitReport], path_to_parent_pom: str,
                                 commit_id: str, invocation_count: int, test_classes: List[str]) -> None:
     """Runs the test suite and collects originating JUnit reports"""
@@ -101,11 +92,11 @@ def generate_pipeline_metrics(jmh_report_list: List[objects.JmhCommitReport], pa
     # install current revision
     run_mvn_install(path_to_pom)
     # get version number
-    version_nr = utils.fetch_maven_project_version(path_to_pom)
+    version_nr = run.maven.fetch_maven_project_version(path_to_pom)
     # build pipeline
     pipeline_pom = os.path.join(path_to_pipeline, 'pom.xml')
-    utils.mvn_set_dep_version(pipeline_pom, 'org.gradoop', version_nr)
-    utils.mvn_package(pipeline_pom)
+    run.maven.mvn_set_dep_version(pipeline_pom, 'org.gradoop', version_nr)
+    run.maven.mvn_package(pipeline_pom)
     # execute pipeline
     jar_name = 'gradoop-pipeline-1.0-SNAPSHOT-shaded.jar'
     path_to_jar = os.path.join(path_to_pipeline, const.MVN_TARGET_DIR, jar_name)
@@ -118,63 +109,6 @@ def generate_pipeline_metrics(jmh_report_list: List[objects.JmhCommitReport], pa
     jmh_report = objects.build_jmh_report(data[0])
     jmh_commit_report = objects.JmhCommitReport(commit_id=commit_id, jmh_report=jmh_report)
     jmh_report_list.append(jmh_commit_report)
-
-
-def run_mvn_test(path_to_pom: str,
-                 test_classes: List[str] = None) -> None:
-    """Triggers test execution with surefire for the maven project specified in the pom."""
-    print('Running test suite of {pom}'.format(pom=path_to_pom))
-    if test_classes is None:
-        cmd = 'mvn clean test -f {pom} -q'.format(pom=path_to_pom)
-    else:
-        comma_separated_classes = ','.join(test_classes)
-        cmd = 'mvn clean test -DfailIfNoTests=false -Dtest={classes} -am -f {pom} -q'.format(
-            pom=path_to_pom, classes=comma_separated_classes)
-
-    try:
-        subprocess.run(cmd, shell=True, check=True)
-    except subprocess.CalledProcessError:
-        print('Failed running test suite of project described by {pom}'.format(pom=path_to_pom))
-        exit(1)
-
-
-def run_mvn_install(path_to_pom: str) -> None:
-    """Installs the specified project to the local maven repository"""
-    print('Installing {pom} to local maven repository.'.format(
-        pom=path_to_pom))
-    cmd = 'mvn install -f {pom} -DskipTests -q'.format(pom=path_to_pom)
-
-    # set findbugs version to 3.0.5 because maven 3.6.1 and findbugs<3.0.5 dont get along
-    cmd += ' -Dplugin.maven-findbugs.version=3.0.5'
-
-    try:
-        subprocess.run(cmd, shell=True, check=True)
-    except subprocess.CalledProcessError:
-        print('Could not install project described by {pom}'.format(pom=path_to_pom))
-        exit(1)
-
-
-def submit_to_flink(path_to_flink: str, path_to_jar, classname: str = None, args: str = None) -> None:
-    """Submits job to flink cluster. Expects cluster is already running.
-
-    :param path_to_flink Path to flink installation
-    :param path_to_jar Path to jar containing submittable executable
-    :param classname Name of submittable class
-    :param args Arguments to be passed to the submittable class
-    """
-    print('Submitting jar {jar} to {flink}'.format(jar=path_to_jar, flink=path_to_flink))
-    cmd = '{flink}/bin/flink run '.format(flink=path_to_flink)
-    if classname is not None:
-        cmd += '-c {classname} '.format(classname=classname)
-    cmd += '{jar} '.format(jar=path_to_jar)
-    if args is not None:
-        cmd += args
-
-    try:
-        subprocess.run(cmd, shell=True, check=True)
-    except subprocess.CalledProcessError:
-        print('Could not submit flink job')
-        exit(1)
 
 
 def collect_submodules(path_to_pom: str) -> List[str]:

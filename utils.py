@@ -1,7 +1,6 @@
 import glob
 import os.path
 from typing import List, Dict, Any
-import subprocess
 import csv
 from statistics import mean
 
@@ -70,46 +69,7 @@ def unpack(obj):
         return obj
 
 
-def fetch_maven_project_version(path_to_pom: str) -> str:
-    print('Fetching version number of {pom}'.format(pom=path_to_pom))
-    cmd = ('mvn -f {pom} help:evaluate '
-           '-Dexpression=project.version -q -DforceStdout').format(pom=path_to_pom)
-    try:
-        completed_process = subprocess.run(
-            cmd, stdout=subprocess.PIPE, encoding='utf-8', shell=True, check=True)
-
-        print('Fetched version nr.: {version}'.format(version=completed_process.stdout))
-        return completed_process.stdout
-    except subprocess.CalledProcessError:
-        print('Failed version nr of project described by {pom}'.format(pom=path_to_pom))
-        exit(1)
-
-
-def mvn_set_dep_version(path_to_pom: str, group_id: str, version_nr: str) -> None:
-    """Sets the required version of dependencies which belong to the specified group id"""
-    print('Setting version of dependency  {group_id}.* to {version}'.format(
-            group_id=group_id, version=version_nr))
-    cmd = 'mvn -f {pom} versions:use-dep-version -Dincludes={group_id} -DdepVersion={version} -q'.format(
-        pom=path_to_pom, group_id=group_id, version=version_nr)
-    try:
-        subprocess.run(cmd, shell=True, check=True)
-    except subprocess.CalledProcessError:
-        print('Setting the version of group {group} to {version} failed.'.format(
-            group=group_id, version=version_nr))
-        exit(1)
-
-
-def mvn_package(path_to_pom: str) -> None:
-    print('Packaging {pom}.'.format(pom=path_to_pom))
-    cmd = 'mvn -f {pom} package -q'.format(pom=path_to_pom)
-    try:
-        subprocess.run(cmd, shell=True, check=True)
-    except subprocess.CalledProcessError:
-        print('Packing of project specified by {pom} failed.'.format(pom=path_to_pom))
-        exit(1)
-
-
-def parse_benchmark_results(path_to_csv: str) -> List[Dict[str, Any]]:
+def parse_gradoop_benchmark_report(path_to_csv: str) -> List[Dict[str, Any]]:
     with open(path_to_csv) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter='|')
         next(csv_reader, None)  # skip the header
@@ -131,3 +91,21 @@ def parse_benchmark_results(path_to_csv: str) -> List[Dict[str, Any]]:
             result.append(parallelism_statistics)
 
         return result
+
+
+def compute_speedup(gradoop_benchmark_report: List[Dict[str, Any]]) -> None:
+    mean_runtime_p1 = 'undefined'
+
+    for row in gradoop_benchmark_report:
+        if row['parallelism'] is 1:
+            mean_runtime_p1 = row['mean_runtime']
+            break
+
+    speedup_list = []
+    for row in gradoop_benchmark_report:
+        if row['parallelism'] > 1:
+            key = 'speedup_p' + str(row['parallelism'])
+            value = mean_runtime_p1 / row['mean_runtime']
+            speedup = {key: value}
+            speedup_list.append(speedup)
+    pass

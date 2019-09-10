@@ -6,7 +6,7 @@ from tabulate import tabulate
 
 import const
 import utils
-from objects import BenchmarkStatistics, JmhStatistics
+from model.objects import BenchmarkStatistics, JmhStatistics
 
 
 def log_benchmark_statistics(statistics: BenchmarkStatistics, dest_dir: str = None) -> None:
