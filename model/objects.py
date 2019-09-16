@@ -74,6 +74,11 @@ class JmhCommitReport(NamedTuple):
     jmh_report: JmhReport
 
 
+class BenchmarkReportRow(NamedTuple):
+    parallelism: int
+    runtime: int
+
+
 def build_junit_commit_report(report_data: Dict[str, Any]) -> JUnitCommitReport:
     """Takes a dict with CommitReport fields as keys and returns the CommitReport equivalent"""
     report = JUnitReport(**report_data[const.REPORT])

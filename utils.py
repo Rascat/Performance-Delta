@@ -1,8 +1,6 @@
 import glob
 import os.path
 from typing import List, Dict, Any
-import csv
-from statistics import mean
 
 import const
 
@@ -69,30 +67,6 @@ def unpack(obj):
         return obj
 
 
-def parse_gradoop_benchmark_report(path_to_csv: str) -> List[Dict[str, Any]]:
-    with open(path_to_csv) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter='|')
-        next(csv_reader, None)  # skip the header
-
-        runtime_per_parallelism = {}
-        for line in csv_reader:
-            parallelism = int(line[0])
-            runtime = int(line[10])
-            if parallelism not in runtime_per_parallelism.keys():
-                runtime_per_parallelism[parallelism] = [runtime]
-            else:
-                runtime_per_parallelism[parallelism].append(runtime)
-
-        result = []
-        for parallelism in runtime_per_parallelism.keys():
-            parallelism_statistics = {'parallelism': parallelism,
-                                      'runtimes': runtime_per_parallelism[parallelism],
-                                      'mean_runtime': round(mean(runtime_per_parallelism[parallelism]))}
-            result.append(parallelism_statistics)
-
-        return result
-
-
 def compute_speedup(gradoop_benchmark_report: List[Dict[str, Any]]) -> None:
     mean_runtime_p1 = 'undefined'
 
@@ -108,4 +82,3 @@ def compute_speedup(gradoop_benchmark_report: List[Dict[str, Any]]) -> None:
             value = mean_runtime_p1 / row['mean_runtime']
             speedup = {key: value}
             speedup_list.append(speedup)
-    pass
